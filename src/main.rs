@@ -1,7 +1,7 @@
 use std::{
     fs::{remove_file, File},
     io::Write,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
     str::FromStr,
 };
@@ -67,7 +67,7 @@ fn main() {
     }
 }
 
-fn preprocess(source_path: &PathBuf, preprocessed_path: &PathBuf) {
+fn preprocess(source_path: &Path, preprocessed_path: &Path) {
     let source_name = source_path.to_str().unwrap();
     let preprocessed_name = preprocessed_path.to_str().unwrap();
 
@@ -99,7 +99,7 @@ fn preprocess(source_path: &PathBuf, preprocessed_path: &PathBuf) {
     };
 }
 
-fn assemble(assembly_path: &PathBuf, binary_path: &PathBuf) {
+fn assemble(assembly_path: &Path, binary_path: &Path) {
     let assembly_name = assembly_path.to_str().unwrap();
     let binary_name = binary_path.to_str().unwrap();
 
@@ -139,7 +139,7 @@ fn assemble(assembly_path: &PathBuf, binary_path: &PathBuf) {
     };
 }
 
-fn compile(preprocessed_path: &PathBuf, assembly_path: &PathBuf, output_control: &OutputControl) {
+fn compile(preprocessed_path: &Path, assembly_path: &Path, output_control: &OutputControl) {
     let preprocessed_name = preprocessed_path.to_str().unwrap();
 
     compile_inner(preprocessed_path, assembly_path, output_control);
@@ -153,12 +153,8 @@ fn compile(preprocessed_path: &PathBuf, assembly_path: &PathBuf, output_control:
     };
 }
 
-fn compile_inner(
-    preprocessed_path: &PathBuf,
-    assembly_path: &PathBuf,
-    output_control: &OutputControl,
-) {
-    let tokens = lexer(&preprocessed_path);
+fn compile_inner(preprocessed_path: &Path, assembly_path: &Path, output_control: &OutputControl) {
+    let tokens = lexer(preprocessed_path);
     if output_control.lex {
         println!("terminating after lexer");
         return;
@@ -181,21 +177,21 @@ fn compile_inner(
 
 struct Token {}
 
-struct AST {}
+struct AbstractSyntaxTree {}
 
-fn lexer(_preprocessed_path: &PathBuf) -> Vec<Token> {
-    return Vec::new();
+fn lexer(_preprocessed_path: &Path) -> Vec<Token> {
+    Vec::new()
 }
 
-fn parser(_tokens: &Vec<Token>) -> AST {
-    return AST {};
+fn parser(_tokens: &[Token]) -> AbstractSyntaxTree {
+    AbstractSyntaxTree {}
 }
 
-fn generator(_ast: &AST) -> String {
-    return String::from("");
+fn generator(_ast: &AbstractSyntaxTree) -> String {
+    String::from("")
 }
 
-fn emitter(_assembly: &String, assembly_path: &PathBuf) {
+fn emitter(_assembly: &str, assembly_path: &Path) {
     let assembly_name = assembly_path.to_str().unwrap();
     let mut assembly_file = match File::create(assembly_path) {
         Ok(f) => f,
@@ -205,5 +201,11 @@ fn emitter(_assembly: &String, assembly_path: &PathBuf) {
         ),
     };
 
-    assembly_file.write_all(b"\t.globl  main\nmain:\n\tmovl    $2, %eax\n\tret\n");
+    match assembly_file.write_all(b"\t.globl  main\nmain:\n\tmovl    $2, %eax\n\tret\n") {
+        Ok(_) => (),
+        Err(err) => panic!(
+            "error writing assembly to file [{}]: {}",
+            assembly_name, err
+        ),
+    }
 }
