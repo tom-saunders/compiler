@@ -10,7 +10,7 @@ use std::{
 
 use clap::{Args, Parser};
 
-use lexer::token::Token;
+use lexer::{token::Token, tokenize::tokenize};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -181,8 +181,11 @@ fn compile_inner(preprocessed_path: &Path, assembly_path: &Path, output_control:
 
 struct AbstractSyntaxTree {}
 
-fn lexer(_preprocessed_path: &Path) -> Vec<Token> {
-    Vec::new()
+fn lexer(preprocessed_path: &Path) -> Vec<Token> {
+    match tokenize(preprocessed_path) {
+        Some(t) => t,
+        None => panic!("unable to tokenize input file"),
+    }
 }
 
 fn parser(_tokens: &[Token]) -> AbstractSyntaxTree {

@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 #[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
     IntConstant(String),
