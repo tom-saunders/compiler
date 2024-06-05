@@ -12,11 +12,15 @@ use nom::character::complete::oct_digit1;
 use nom::character::complete::satisfy;
 use nom::combinator::all_consuming;
 use nom::combinator::map;
+use nom::combinator::not;
+use nom::combinator::peek;
 use nom::combinator::recognize;
 use nom::error;
 use nom::multi::many0;
+use nom::sequence::delimited;
 use nom::sequence::pair;
 use nom::sequence::preceded;
+use nom::sequence::terminated;
 use nom::IResult;
 
 use crate::lexer::token::KeywordType;
@@ -34,7 +38,7 @@ pub fn tokenize(preprocessed_path: &Path) -> Option<Vec<Token>> {
     match tokenize_str(&preprocessed) {
         Ok((rem, toks)) => {
             if !rem.is_empty() {
-                panic!("unmatched input: [{}]", rem);
+                panic!("unmatched input: [{}] toks: [{:?}]", rem, toks);
             }
             Some(toks)
         }
@@ -79,7 +83,10 @@ fn is_nonzero_digit(c: char) -> bool {
 fn int_constant_dec(input: &str) -> IResult<&str, Token> {
     let (rest, matched) = error::context(
         "int_constant_dec",
-        recognize(pair(satisfy(is_nonzero_digit), digit0)),
+        recognize(terminated(
+            pair(satisfy(is_nonzero_digit), digit0),
+            peek(not(alphanumeric1)),
+        )),
     )(input)?;
     match matched.parse::<u128>() {
         Ok(value) => Ok((rest, Token::IntConstant(value))),
@@ -88,8 +95,10 @@ fn int_constant_dec(input: &str) -> IResult<&str, Token> {
 }
 
 fn int_constant_hex(input: &str) -> IResult<&str, Token> {
-    let (rest, matched) =
-        error::context("int_constant_hex", preceded(tag("0x"), hex_digit1))(input)?;
+    let (rest, matched) = error::context(
+        "int_constant_hex",
+        delimited(tag("0x"), hex_digit1, peek(not(alphanumeric1))),
+    )(input)?;
     match u128::from_str_radix(matched, 16) {
         Ok(value) => Ok((rest, Token::IntConstant(value))),
         Err(err) => panic!("have nonparsable hex value [{}]: {}", matched, err),
@@ -99,7 +108,10 @@ fn int_constant_hex(input: &str) -> IResult<&str, Token> {
 fn int_constant_oct(input: &str) -> IResult<&str, Token> {
     let (rest, matched) = error::context(
         "int_constant_oct",
-        alt((preceded(tag("0"), oct_digit1), tag("0"))),
+        terminated(
+            alt((preceded(tag("0"), oct_digit1), tag("0"))),
+            peek(not(alphanumeric1)),
+        ),
     )(input)?;
     match u128::from_str_radix(matched, 8) {
         Ok(value) => Ok((rest, Token::IntConstant(value))),
@@ -121,13 +133,13 @@ fn constant(input: &str) -> IResult<&str, Token> {
 fn punctuation(input: &str) -> IResult<&str, Token> {
     error::context(
         "punctuation",
-        all_consuming(alt((
+        alt((
             map(tag("("), |_| Token::OpenParen),
             map(tag(")"), |_| Token::CloseParen),
             map(tag("{"), |_| Token::OpenBrace),
             map(tag("}"), |_| Token::CloseBrace),
             map(tag(";"), |_| Token::Semicolon),
-        ))),
+        )),
     )(input)
 }
 
