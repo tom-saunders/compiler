@@ -5,12 +5,18 @@ use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::alpha1;
 use nom::character::complete::alphanumeric1;
+use nom::character::complete::digit0;
+use nom::character::complete::hex_digit1;
 use nom::character::complete::multispace1;
+use nom::character::complete::oct_digit1;
+use nom::character::complete::satisfy;
+use nom::combinator::all_consuming;
 use nom::combinator::map;
 use nom::combinator::recognize;
 use nom::error;
 use nom::multi::many0;
 use nom::sequence::pair;
+use nom::sequence::preceded;
 use nom::IResult;
 
 use crate::lexer::token::KeywordType;
@@ -39,11 +45,11 @@ pub fn tokenize(preprocessed_path: &Path) -> Option<Vec<Token>> {
 fn keyword(input: &str) -> IResult<&str, Token> {
     error::context(
         "keyword",
-        alt((
+        all_consuming(alt((
             map(tag("int"), |_| Token::Keyword(KeywordType::Int)),
             map(tag("void"), |_| Token::Keyword(KeywordType::Void)),
             map(tag("return"), |_| Token::Keyword(KeywordType::Return)),
-        )),
+        ))),
     )(input)
 }
 
@@ -53,18 +59,67 @@ fn identifier(input: &str) -> IResult<&str, Token> {
 }
 
 fn keyword_or_ident(input: &str) -> IResult<&str, Token> {
-    let (rest, matched) = recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0(alt((alphanumeric1, tag("_")))),
-    ))(input)?;
-    match alt((keyword, identifier))(matched) {
+    let (rest, matched) = error::context(
+        "keyword_or_ident",
+        recognize(pair(
+            alt((alpha1, tag("_"))),
+            many0(alt((alphanumeric1, tag("_")))),
+        )),
+    )(input)?;
+    match all_consuming(alt((keyword, identifier)))(matched) {
         Ok((_, token)) => Ok((rest, token)),
         Err(e) => Err(e),
     }
 }
 
+fn is_nonzero_digit(c: char) -> bool {
+    ('1'..='9').contains(&c)
+}
+
+fn int_constant_dec(input: &str) -> IResult<&str, Token> {
+    let (rest, matched) = error::context(
+        "int_constant_dec",
+        recognize(pair(satisfy(is_nonzero_digit), digit0)),
+    )(input)?;
+    match matched.parse::<u128>() {
+        Ok(value) => Ok((rest, Token::IntConstant(value))),
+        Err(err) => panic!("have nonparsable dec value [{}]: {}", matched, err),
+    }
+}
+
+fn int_constant_hex(input: &str) -> IResult<&str, Token> {
+    let (rest, matched) =
+        error::context("int_constant_hex", preceded(tag("0x"), hex_digit1))(input)?;
+    match u128::from_str_radix(matched, 16) {
+        Ok(value) => Ok((rest, Token::IntConstant(value))),
+        Err(err) => panic!("have nonparsable hex value [{}]: {}", matched, err),
+    }
+}
+
+fn int_constant_oct(input: &str) -> IResult<&str, Token> {
+    let (rest, matched) = error::context(
+        "int_constant_oct",
+        alt((preceded(tag("0"), oct_digit1), tag("0"))),
+    )(input)?;
+    match u128::from_str_radix(matched, 8) {
+        Ok(value) => Ok((rest, Token::IntConstant(value))),
+        Err(err) => panic!("have nonparsable oct value [{}]: {}", matched, err),
+    }
+}
+
+fn int_constant(input: &str) -> IResult<&str, Token> {
+    error::context(
+        "int_constant",
+        alt((int_constant_dec, int_constant_hex, int_constant_oct)),
+    )(input)
+}
+
+fn constant(input: &str) -> IResult<&str, Token> {
+    error::context("constant", int_constant)(input)
+}
+
 fn token(input: &str) -> IResult<&str, Token> {
-    error::context("token", alt((keyword_or_ident,)))(input)
+    error::context("token", alt((keyword_or_ident, constant)))(input)
 }
 
 fn tokenize_str(input: &str) -> IResult<&str, Vec<Token>> {
@@ -85,10 +140,10 @@ mod test {
 
     #[test]
     fn lexes_identifier() {
-        let ident = String::from("ident");
-        let (unmatched, tokens) = tokenize_str(&ident).expect("expected tokens to be returned");
+        let ident = "ident";
+        let (unmatched, tokens) = tokenize_str(ident).expect("expected tokens to be returned");
 
-        let exp: Vec<Token> = vec![Token::Identifier(ident)];
+        let exp: Vec<Token> = vec![Token::Identifier(String::from(ident))];
 
         assert_eq!(exp, tokens);
     }
@@ -199,10 +254,24 @@ mod test {
 
     #[test]
     fn lexes_identifier_ints_not_keyword_int_and_identifier_s() {
-        let ints = String::from("ints");
-        let (unmatched, tokens) = tokenize_str(&ints).expect("expected tokens to be returned");
+        let ints = "ints";
+        let (unmatched, tokens) = tokenize_str(ints).expect("expected tokens to be returned");
 
-        let exp: Vec<Token> = vec![Token::Identifier(ints)];
+        let exp: Vec<Token> = vec![Token::Identifier(String::from(ints))];
+
+        assert_eq!(exp, tokens);
+    }
+
+    #[test]
+    fn lexes_identifiers_omits_whitespace() {
+        let ints = "inta intb intc";
+        let (unmatched, tokens) = tokenize_str(ints).expect("expected tokens to be returned");
+
+        let exp: Vec<Token> = vec![
+            Token::Identifier(String::from("inta")),
+            Token::Identifier(String::from("intb")),
+            Token::Identifier(String::from("intc")),
+        ];
 
         assert_eq!(exp, tokens);
     }
@@ -212,6 +281,21 @@ mod test {
         let (unmatched, tokens) = tokenize_str(" ").expect("expected tokens to be returned");
 
         let exp: Vec<Token> = vec![];
+
+        assert_eq!(exp, tokens);
+    }
+
+    #[test]
+    fn lexes_octal_hex_constants() {
+        let (unmatched, tokens) = tokenize_str(" 01 02 0 0x0 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+            .expect("expected tokens to be returned");
+
+        let exp: Vec<Token> = vec![
+            Token::IntConstant(1),
+            Token::IntConstant(2),
+            Token::IntConstant(0),
+            Token::IntConstant(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+        ];
 
         assert_eq!(exp, tokens);
     }
