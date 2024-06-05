@@ -36,8 +36,9 @@ mod test {
 
     #[test]
     fn lexes_int_const() {
-        let int_const = String::from("1");
-        let tokens = tokenize_str(&int_const).expect("expected tokens to be returned");
+        let int_const = 1;
+        let int_str = String::from(int_const);
+        let tokens = tokenize_str(&int_str).expect("expected tokens to be returned");
 
         let exp: Vec<Token> = vec![Token::IntConstant(int_const)];
 

@@ -4,7 +4,7 @@ use std::ops::Deref;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
-    IntConstant(String),
+    IntConstant(u128),
     KeywordInt,
     KeywordVoid,
     KeywordReturn,
