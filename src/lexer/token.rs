@@ -5,9 +5,7 @@ use std::ops::Deref;
 pub enum Token {
     Identifier(String),
     IntConstant(u128),
-    KeywordInt,
-    KeywordVoid,
-    KeywordReturn,
+    Keyword(KeywordType),
     OpenParen,
     CloseParen,
     OpenBrace,
@@ -21,4 +19,12 @@ impl Deref for Token {
     fn deref(&self) -> &Self::Target {
         self
     }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone)]
+pub enum KeywordType {
+    Int,
+    Void,
+    Return,
 }
