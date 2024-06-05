@@ -118,8 +118,21 @@ fn constant(input: &str) -> IResult<&str, Token> {
     error::context("constant", int_constant)(input)
 }
 
+fn punctuation(input: &str) -> IResult<&str, Token> {
+    error::context(
+        "punctuation",
+        all_consuming(alt((
+            map(tag("("), |_| Token::OpenParen),
+            map(tag(")"), |_| Token::CloseParen),
+            map(tag("{"), |_| Token::OpenBrace),
+            map(tag("}"), |_| Token::CloseBrace),
+            map(tag(";"), |_| Token::Semicolon),
+        ))),
+    )(input)
+}
+
 fn token(input: &str) -> IResult<&str, Token> {
-    error::context("token", alt((keyword_or_ident, constant)))(input)
+    error::context("token", alt((keyword_or_ident, constant, punctuation)))(input)
 }
 
 fn tokenize_str(input: &str) -> IResult<&str, Vec<Token>> {
@@ -146,6 +159,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::Identifier(String::from(ident))];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -157,6 +171,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::IntConstant(int_const)];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -166,15 +181,17 @@ mod test {
         let exp: Vec<Token> = vec![Token::Keyword(KeywordType::Int)];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
     fn lexes_keyword_return() {
-        let (unmatched_, tokens) = tokenize_str("return").expect("expected tokens to be returned");
+        let (unmatched, tokens) = tokenize_str("return").expect("expected tokens to be returned");
 
         let exp: Vec<Token> = vec![Token::Keyword(KeywordType::Return)];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -184,6 +201,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::Keyword(KeywordType::Void)];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -193,6 +211,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::OpenParen];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -202,6 +221,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::CloseParen];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -211,6 +231,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::OpenBrace];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -220,6 +241,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::CloseBrace];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -229,13 +251,17 @@ mod test {
         let exp: Vec<Token> = vec![Token::Semicolon];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
     fn no_lexes_invalid_at() {
         let (unmatched, tokens) = tokenize_str("0@1").expect("expected tokens to be returned");
 
-        assert!(tokens.len() == 0);
+        let exp: Vec<Token> = vec![Token::IntConstant(0)];
+
+        assert_eq!(exp, tokens);
+        assert!(!unmatched.is_empty())
     }
 
     #[test]
@@ -243,6 +269,7 @@ mod test {
         let (unmatched, tokens) = tokenize_str("`").expect("expected tokens to be returned");
 
         assert!(tokens.len() == 0);
+        assert!(!unmatched.is_empty())
     }
 
     #[test]
@@ -250,6 +277,7 @@ mod test {
         let (unmatched, tokens) = tokenize_str("\\").expect("expected tokens to be returned");
 
         assert!(tokens.len() == 0);
+        assert!(!unmatched.is_empty())
     }
 
     #[test]
@@ -260,6 +288,7 @@ mod test {
         let exp: Vec<Token> = vec![Token::Identifier(String::from(ints))];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -274,6 +303,7 @@ mod test {
         ];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -283,6 +313,7 @@ mod test {
         let exp: Vec<Token> = vec![];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 
     #[test]
@@ -294,9 +325,11 @@ mod test {
             Token::IntConstant(1),
             Token::IntConstant(2),
             Token::IntConstant(0),
+            Token::IntConstant(0),
             Token::IntConstant(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
         ];
 
         assert_eq!(exp, tokens);
+        assert!(unmatched.is_empty())
     }
 }
