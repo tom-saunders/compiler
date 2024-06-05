@@ -1,3 +1,5 @@
+mod lexer;
+
 use std::{
     fs::{remove_file, File},
     io::Write,
@@ -7,6 +9,8 @@ use std::{
 };
 
 use clap::{Args, Parser};
+
+use lexer::token::Token;
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -174,8 +178,6 @@ fn compile_inner(preprocessed_path: &Path, assembly_path: &Path, output_control:
 
     emitter(&assembly, assembly_path);
 }
-
-struct Token {}
 
 struct AbstractSyntaxTree {}
 
