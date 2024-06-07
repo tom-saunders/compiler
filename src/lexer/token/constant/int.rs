@@ -9,14 +9,18 @@ use crate::lexer::Token;
 use crate::lexer::Token::Constant;
 
 use nom::branch::alt;
+use nom::branch::permutation;
 use nom::bytes::complete::tag;
 use nom::character::complete::alphanumeric1;
 use nom::character::complete::digit0;
 use nom::character::complete::hex_digit1;
 use nom::character::complete::oct_digit0;
 use nom::character::complete::oct_digit1;
+use nom::character::complete::one_of;
 use nom::character::complete::satisfy;
+use nom::combinator::map;
 use nom::combinator::not;
+use nom::combinator::opt;
 use nom::combinator::peek;
 use nom::combinator::recognize;
 use nom::error;
@@ -32,19 +36,76 @@ fn is_nonzero_digit(c: char) -> bool {
     ('1'..='9').contains(&c)
 }
 
+enum SuffixType {
+    UnsignedLong,
+    Long,
+    Unsigned,
+    None,
+}
+
+fn int_suffix_unsigned(input: Span) -> IResult<Span, ()> {
+    map(one_of("uU"), |_| ())(input)
+}
+
+fn int_suffix_long(input: Span) -> IResult<Span, ()> {
+    map(alt((
+        pair(tag("l"), opt(tag("l"))),
+        pair(tag("L"), opt(tag("L"))),
+    )), |_| ())(input)
+}
+
+fn int_suffix(input: Span) -> IResult<Span, SuffixType> {
+    match int_suffix_unsigned(input) {
+        Ok((r, _)) => match int_suffix_long(r) {
+            Ok((s, _)) => Ok((s, SuffixType::UnsignedLong)),
+            Err(_) => Ok((r, SuffixType::Unsigned)),
+        },
+        Err(_) => match int_suffix_long(input) {
+            Ok((t, _)) => match int_suffix_unsigned(t) {
+                Ok((u, _)) => Ok((u, SuffixType::UnsignedLong)),
+                Err(_) => Ok((t, SuffixType::Long)),
+            },
+            Err(_) => Ok((input, SuffixType::None)),
+        },
+    }
+}
+
 fn int_constant_dec(input: Span) -> IResult<Span, LocatedToken> {
-    let (rest, matched) = error::context(
+    let (rest, (matched, suffix)) = error::context(
         "int_constant_dec",
-        recognize(
-            pair(satisfy(is_nonzero_digit), digit0)
+        pair(
+            recognize(pair(satisfy(is_nonzero_digit), digit0)),
+            int_suffix
         ),
     )(input)?;
-    match matched.fragment().parse::<i64>() {
-        Ok(value) => Ok((
-            rest,
-            LocatedToken::of(Location::from(&matched), dec_int_width(value)),
-        )),
-        Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge))),
+
+
+
+    match suffix {
+        SuffixType::None => {
+            match matched.fragment().parse::<i64>() {
+                Ok(value) => Ok((rest, LocatedToken::of(Location::from(&matched), int32_or_int64(value)))),
+                Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge)))
+            }
+        },
+        SuffixType::Long => {
+            match matched.fragment().parse::<i64>() {
+                Ok(value) => Ok((rest, LocatedToken::of(Location::from(&matched), int64(value)))),
+                Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge)))
+            }
+        },
+        SuffixType::Unsigned => {
+            match matched.fragment().parse::<u64>() {
+                Ok(value) => Ok((rest, LocatedToken::of(Location::from(&matched), uint32_or_uint64(value)))),
+                Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge)))
+            }
+        },
+        SuffixType::UnsignedLong => {
+            match matched.fragment().parse::<u64>() {
+                Ok(value) => Ok((rest, LocatedToken::of(Location::from(&matched), uint64(value)))),
+                Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge)))
+            }
+        },
     }
 }
 
@@ -56,7 +117,7 @@ fn int_constant_hex(input: Span) -> IResult<Span, LocatedToken> {
     match u64::from_str_radix(matched.fragment(), 16) {
         Ok(value) => Ok((
             rest,
-            LocatedToken::of(Location::from(&matched), nondec_int_width(value)),
+            LocatedToken::of(Location::from(&matched), int32_or_uint32_or_int64_or_uint64(value)),
         )),
         Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge))),
     }
@@ -71,13 +132,61 @@ fn int_constant_oct(input: Span) -> IResult<Span, LocatedToken> {
     match u64::from_str_radix(matched.fragment(), 8) {
         Ok(value) => Ok((
             rest,
-            LocatedToken::of(Location::from(&matched), nondec_int_width(value)),
+            LocatedToken::of(Location::from(&matched), int32_or_uint32_or_int64_or_uint64(value)),
         )),
         Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge))),
     }
 }
 
-fn dec_int_width(v64: i64) -> Token {
+/// decimal literal with no suffix
+fn int32_or_int64(v64: i64) -> Token {
+    match v64 {
+        0..=0x7fff_ffff => Constant(Int32(i32::try_from(v64).unwrap())),
+        0x8000_0000..=0x7fff_ffff_ffff_ffff => Constant(Int64(v64)),
+        _ => panic!("should never get negative values in int32_or_int64"),
+    }
+}
+
+/// nondecimal literal with no suffix
+fn int32_or_uint32_or_int64_or_uint64(v64: u64) -> Token {
+    match v64 {
+        0..=0x7fff_ffff => Constant(Int32(i32::try_from(v64).unwrap())),
+        0x8000_0000..=0xffff_ffff => Constant(Uint32(u32::try_from(v64).unwrap())),
+        0x1_0000_0000..=0x7fff_ffff_ffff_ffff => Constant(Int64(i64::try_from(v64).unwrap())),
+        _ => Constant(Uint64(v64)),
+    }
+}
+
+/// any literal with only u suffix
+fn uint32_or_uint64(v64: u64) -> Token {
+    match v64 {
+        0..=0xffff_ffff => Constant(Uint32(u32::try_from(v64).unwrap())),
+        _ => Constant(Uint64(v64)),
+    }
+}
+
+/// decimal literal with only l suffix
+fn int64(v64: i64) -> Token {
+    match v64 {
+        0..=0x7fff_ffff_ffff_ffff => Constant(Int64(v64)),
+        _ => panic!("should never get negative values in int64"),
+    }
+}
+
+/// nondecimal literal with only l suffix
+fn int64_or_uint64(v64: u64) -> Token {
+    match v64 {
+        0..=0x7fff_ffff_ffff_ffff => Constant(Int64(i64::try_from(v64).unwrap())),
+        _ => Constant(Uint64(v64)),
+    }
+}
+
+fn uint64(v64: u64) -> Token {
+    Constant(Uint64(v64))
+}
+
+/*
+fn dec_int_width(v64: u64) -> Token {
     match i32::try_from(v64) {
         Ok(v32) => Constant(Int32(v32)),
         Err(_) => Constant(Int64(v64)),
@@ -96,6 +205,7 @@ fn nondec_int_width(q64: u64) -> Token {
         },
     }
 }
+*/
 
 pub fn int_constant(input: Span) -> IResult<Span, LocatedToken> {
     error::context(
@@ -169,7 +279,7 @@ mod test {
     }
 
     #[test]
-    fn test_above_range_dec() {
+    fn test_dec_above_range() {
         // int64_max is     9223372036854775807 (i.e. 2^63 -1)
         let s = Span::from("9223372036854775808 a");
 
@@ -180,7 +290,7 @@ mod test {
     }
 
     #[test]
-    fn test_above_range_hex() {
+    fn test_hex_above_range() {
         // uint64_max is    0x0FFFFFFFFFFFFFFFF (i.e. 2^64 -1)
         let s = Span::from("0x10000000000000000 a");
 
@@ -191,7 +301,7 @@ mod test {
     }
 
     #[test]
-    fn test_above_range_oct() {
+    fn test_oct_above_range() {
         // uint64_max is    01777777777777777777777 (i.e. 2^64 -1)
         let s = Span::from("02000000000000000000000 a");
 
@@ -202,7 +312,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_no_suffix_dec_min_int32() {
+    fn test_dec_no_suffix_min_int32() {
         let s = Span::from("1 a");
 
         let (rest, loc_token) = match int_constant_dec(s) {
@@ -219,7 +329,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_no_suffix_dec_max_int32() {
+    fn test_dec_no_suffix_max_int32() {
         // int32 max is     2147483647 (2^31 -1)
         let s = Span::from("2147483647 a");
 
@@ -239,7 +349,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_no_suffix_dec_min_int64() {
+    fn test_no_suffix_dec_min_int64() {
         // int64 min is     2147483648 (2^31)
         let s = Span::from("2147483648 a");
 
@@ -259,7 +369,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_no_suffix_dec_max_int64() {
+    fn test_dec_no_suffix_max_int64() {
         // int64 max is     9223372036854775807 (2^64-1)
         let s = Span::from("9223372036854775807 a");
 
@@ -279,7 +389,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_min_int32() {
+    fn test_oct_no_suffix_min_int32() {
         let s = Span::from("00000000000000000000000 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -296,7 +406,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_max_int32() {
+    fn test_oct_no_suffix_max_int32() {
         let s = Span::from("017777777777 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -313,7 +423,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_min_uint32() {
+    fn test_oct_no_suffix_min_uint32() {
         let s = Span::from("020000000000 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -330,7 +440,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_max_uint32() {
+    fn test_oct_no_suffix_max_uint32() {
         let s = Span::from("037777777777 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -347,7 +457,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_min_int64() {
+    fn test_oct_no_suffix_min_int64() {
         let s = Span::from("040000000000 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -364,7 +474,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_max_int64() {
+    fn test_oct_no_suffix_max_int64() {
         let s = Span::from("0777777777777777777777 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -381,7 +491,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_min_uint64() {
+    fn test_oct_no_suffix_min_uint64() {
         let s = Span::from("01000000000000000000000 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -398,7 +508,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_oct_max_uint64() {
+    fn test_oct_no_suffix_max_uint64() {
         let s = Span::from("01777777777777777777777 a");
 
         let (rest, loc_token) = match int_constant_oct(s) {
@@ -417,7 +527,7 @@ mod test {
     
 
      #[test]
-    fn test_sized_no_suffix_hex_min_int32() {
+    fn test_hex_no_suffix_min_int32() {
         let s = Span::from("0x0 a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -434,7 +544,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_hex_max_int32() {
+    fn test_hex_no_suffix_max_int32() {
         let s = Span::from("0x7fffffff a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -451,7 +561,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_hex_min_uint32() {
+    fn test_hex_no_suffix_min_uint32() {
         let s = Span::from("0x80000000 a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -468,7 +578,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_hex_max_uint32() {
+    fn test_hex_no_suffix_max_uint32() {
         let s = Span::from("0xffffffff a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -485,7 +595,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_hex_min_int64() {
+    fn test_hex_no_suffix_min_int64() {
         let s = Span::from("0x100000000 a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -502,7 +612,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_hex_max_int64() {
+    fn test_hex_no_suffix_max_int64() {
         let s = Span::from("0x7fffffffffffffff a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -519,7 +629,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_hex_min_uint64() {
+    fn test_hex_no_suffix_min_uint64() {
         let s = Span::from("0x8000000000000000 a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -536,7 +646,7 @@ mod test {
     }
 
      #[test]
-    fn test_sized_no_suffix_hex_max_uint64() {
+    fn test_hex_no_suffix_max_uint64() {
         let s = Span::from("0xffffffffffffffff a");
 
         let (rest, loc_token) = match int_constant_hex(s) {
@@ -553,7 +663,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_u_suffix_min_uint32() {
+    fn test_dec_u_suffix_min_uint32() {
         let s = Span::from("1u a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -570,7 +680,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_U_suffix_min_uint32() {
+    #[allow(non_snake_case)]
+    fn test_dec_U_suffix_min_uint32() {
         let s = Span::from("1U a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -587,7 +698,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_l_suffix_min_int64() {
+    fn test_dec_l_suffix_min_int64() {
         let s = Span::from("1l a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -604,7 +715,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_L_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_L_suffix_min_int64() {
         let s = Span::from("1L a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -621,7 +733,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_ll_suffix_min_int64() {
+    fn test_dec_ll_suffix_min_int64() {
         let s = Span::from("1ll a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -638,7 +750,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_LL_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_LL_suffix_min_int64() {
         let s = Span::from("1LL a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -655,7 +768,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_lL_suffix_fails() {
+    #[allow(non_snake_case)]
+    fn test_dec_lL_suffix_fails() {
         let s = Span::from("1lL a");
 
         match int_constant(s) {
@@ -665,7 +779,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_Ll_suffix_fails() {
+    #[allow(non_snake_case)]
+    fn test_dec_Ll_suffix_fails() {
         let s = Span::from("1Ll a");
 
         match int_constant(s) {
@@ -674,10 +789,8 @@ mod test {
         }
     }
 
-    
-
     #[test]
-    fn test_sized_ul_suffix_min_uint64() {
+    fn test_dec_ul_suffix_min_uint64() {
         let s = Span::from("1ul a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -694,7 +807,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_lu_suffix_min_int64() {
+    fn test_dec_lu_suffix_min_uint64() {
         let s = Span::from("1lu a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -711,7 +824,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_Ul_suffix_min_uint64() {
+    #[allow(non_snake_case)]
+    fn test_dec_Ul_suffix_min_uint64() {
         let s = Span::from("1Ul a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -728,7 +842,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_lU_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_lU_suffix_min_uint64() {
         let s = Span::from("1lU a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -745,7 +860,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_uL_suffix_min_uint64() {
+    #[allow(non_snake_case)]
+    fn test_dec_uL_suffix_min_uint64() {
         let s = Span::from("1uL a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -762,7 +878,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_Lu_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_Lu_suffix_min_uint64() {
         let s = Span::from("1Lu a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -779,7 +896,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_UL_suffix_min_uint64() {
+    #[allow(non_snake_case)]
+    fn test_dec_UL_suffix_min_uint64() {
         let s = Span::from("1UL a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -796,7 +914,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_LU_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_LU_suffix_min_uint64() {
         let s = Span::from("1LU a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -813,7 +932,7 @@ mod test {
     }
     
     #[test]
-    fn test_sized_ull_suffix_min_uint64() {
+    fn test_dec_ull_suffix_min_uint64() {
         let s = Span::from("1ull a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -830,7 +949,7 @@ mod test {
     }
 
     #[test]
-    fn test_sized_llu_suffix_min_int64() {
+    fn test_dec_llu_suffix_min_uint64() {
         let s = Span::from("1llu a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -847,7 +966,8 @@ mod test {
     }
     
     #[test]
-    fn test_sized_Ull_suffix_min_uint64() {
+    #[allow(non_snake_case)]
+    fn test_dec_Ull_suffix_min_uint64() {
         let s = Span::from("1Ull a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -864,7 +984,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_llU_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_llU_suffix_min_uint64() {
         let s = Span::from("1llU a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -881,7 +1002,8 @@ mod test {
     }
     
     #[test]
-    fn test_sized_uLL_suffix_min_uint64() {
+    #[allow(non_snake_case)]
+    fn test_dec_uLL_suffix_min_uint64() {
         let s = Span::from("1uLL a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -898,7 +1020,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_LLu_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_LLu_suffix_min_uint64() {
         let s = Span::from("1LLu a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -915,7 +1038,8 @@ mod test {
     }
     
     #[test]
-    fn test_sized_ULL_suffix_min_uint64() {
+    #[allow(non_snake_case)]
+    fn test_dec_ULL_suffix_min_uint64() {
         let s = Span::from("1ULL a");
 
         let (rest, loc_token) = match int_constant(s) {
@@ -932,7 +1056,8 @@ mod test {
     }
 
     #[test]
-    fn test_sized_LLU_suffix_min_int64() {
+    #[allow(non_snake_case)]
+    fn test_dec_LLU_suffix_min_uint64() {
         let s = Span::from("1LLU a");
 
         let (rest, loc_token) = match int_constant(s) {
