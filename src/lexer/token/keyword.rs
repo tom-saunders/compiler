@@ -15,13 +15,13 @@ pub fn keyword(input: Span) -> IResult<Span, LocatedToken> {
         "keyword",
         alt((
             map(tag("int"), |_| {
-                LocatedToken(Location::from(&input), Keyword(KeywordType::Int))
+                LocatedToken::of(Location::from(&input), Keyword(KeywordType::Int))
             }),
             map(tag("void"), |_| {
-                LocatedToken(Location::from(&input), Keyword(KeywordType::Void))
+                LocatedToken::of(Location::from(&input), Keyword(KeywordType::Void))
             }),
             map(tag("return"), |_| {
-                LocatedToken(Location::from(&input), Keyword(KeywordType::Return))
+                LocatedToken::of(Location::from(&input), Keyword(KeywordType::Return))
             }),
         )),
     )(input)

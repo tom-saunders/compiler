@@ -14,19 +14,19 @@ pub fn punctuation(input: Span) -> IResult<Span, LocatedToken> {
         "punctuation",
         alt((
             map(tag("("), |_| {
-                LocatedToken(Location::from(&input), OpenParen)
+                LocatedToken::of(Location::from(&input), OpenParen)
             }),
             map(tag(")"), |_| {
-                LocatedToken(Location::from(&input), CloseParen)
+                LocatedToken::of(Location::from(&input), CloseParen)
             }),
             map(tag("{"), |_| {
-                LocatedToken(Location::from(&input), OpenBrace)
+                LocatedToken::of(Location::from(&input), OpenBrace)
             }),
             map(tag("}"), |_| {
-                LocatedToken(Location::from(&input), CloseBrace)
+                LocatedToken::of(Location::from(&input), CloseBrace)
             }),
             map(tag(";"), |_| {
-                LocatedToken(Location::from(&input), Semicolon)
+                LocatedToken::of(Location::from(&input), Semicolon)
             }),
         )),
     )(input)

@@ -30,19 +30,39 @@ impl<'a> From<&Span<'a>> for Location {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct LocatedToken(Location, Token);
+pub struct LocatedToken {
+    loc: Location,
+    token: Token,
+}
+
+impl LocatedToken {
+    fn of(loc: Location, token: Token) -> Self {
+        Self { loc, token }
+    }
+}
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
-    Int32Constant(u32),
+    Constant(ConstantType),
     Keyword(KeywordType),
     OpenParen,
     CloseParen,
     OpenBrace,
     CloseBrace,
     Semicolon,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone)]
+pub enum ConstantType {
+    Int32(i32),
+    Int64(i64),
+    Uint32(u32),
+    Uint64(u64),
+    Float32(f32),
+    Float64(f64),
 }
 
 #[allow(dead_code)]

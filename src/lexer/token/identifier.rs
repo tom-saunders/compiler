@@ -12,7 +12,7 @@ pub fn identifier(input: Span) -> IResult<Span, LocatedToken> {
     error::context(
         "identifier",
         map(rest, |_| {
-            LocatedToken(
+            LocatedToken::of(
                 Location::from(&input),
                 Identifier(input.fragment().to_string()),
             )
