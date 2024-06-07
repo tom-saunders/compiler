@@ -9,13 +9,11 @@ use crate::lexer::Token;
 use crate::lexer::Token::Constant;
 
 use nom::branch::alt;
-use nom::branch::permutation;
 use nom::bytes::complete::tag;
 use nom::character::complete::alphanumeric1;
 use nom::character::complete::digit0;
 use nom::character::complete::hex_digit1;
 use nom::character::complete::oct_digit0;
-use nom::character::complete::oct_digit1;
 use nom::character::complete::one_of;
 use nom::character::complete::satisfy;
 use nom::combinator::map;
@@ -26,7 +24,6 @@ use nom::combinator::recognize;
 use nom::error;
 use nom::error::Error;
 use nom::error::ErrorKind;
-use nom::sequence::delimited;
 use nom::sequence::pair;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
@@ -110,31 +107,36 @@ fn int_constant_dec(input: Span) -> IResult<Span, LocatedToken> {
 }
 
 fn int_constant_hex(input: Span) -> IResult<Span, LocatedToken> {
-    let (rest, matched) = error::context(
+    let (rest, (matched, suffix)) = error::context(
         "int_constant_hex",
-        preceded(tag("0x"), hex_digit1),
+        pair(
+            preceded(tag("0x"), hex_digit1),
+            int_suffix
+        )
     )(input)?;
-    match u64::from_str_radix(matched.fragment(), 16) {
-        Ok(value) => Ok((
-            rest,
-            LocatedToken::of(Location::from(&matched), int32_or_uint32_or_int64_or_uint64(value)),
-        )),
-        Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge))),
+
+    let value = u64::from_str_radix(matched.fragment(), 16).map_err(|_| nom::Err::Error(Error::new(input, ErrorKind::TooLarge)))?;
+    match suffix {
+        SuffixType::None => Ok((rest, LocatedToken::of(Location::from(&matched), int32_or_uint32_or_int64_or_uint64(value)))),
+        SuffixType::Long => Ok((rest, LocatedToken::of(Location::from(&matched), int64_or_uint64(value)))),
+        SuffixType::Unsigned => Ok((rest, LocatedToken::of(Location::from(&matched), uint32_or_uint64(value)))),
+        SuffixType::UnsignedLong => Ok((rest, LocatedToken::of(Location::from(&matched), uint64(value)))),
     }
 }
 
 fn int_constant_oct(input: Span) -> IResult<Span, LocatedToken> {
-    let (rest, matched) = error::context(
+    let (rest, (matched, suffix)) = error::context(
         "int_constant_oct",
-            recognize(pair(tag("0"), oct_digit0))
+         pair(recognize(pair(tag("0"), oct_digit0)), int_suffix)
         ,
     )(input)?;
-    match u64::from_str_radix(matched.fragment(), 8) {
-        Ok(value) => Ok((
-            rest,
-            LocatedToken::of(Location::from(&matched), int32_or_uint32_or_int64_or_uint64(value)),
-        )),
-        Err(_) => Err(nom::Err::Error(Error::new(input, ErrorKind::TooLarge))),
+    
+    let value = u64::from_str_radix(matched.fragment(), 8).map_err(|_| nom::Err::Error(Error::new(input, ErrorKind::TooLarge)))?;
+    match suffix {
+        SuffixType::None => Ok((rest, LocatedToken::of(Location::from(&matched), int32_or_uint32_or_int64_or_uint64(value)))),
+        SuffixType::Long => Ok((rest, LocatedToken::of(Location::from(&matched), int64_or_uint64(value)))),
+        SuffixType::Unsigned => Ok((rest, LocatedToken::of(Location::from(&matched), uint32_or_uint64(value)))),
+        SuffixType::UnsignedLong => Ok((rest, LocatedToken::of(Location::from(&matched), uint64(value)))),
     }
 }
 
@@ -181,31 +183,10 @@ fn int64_or_uint64(v64: u64) -> Token {
     }
 }
 
+/// literal with both u and l suffix
 fn uint64(v64: u64) -> Token {
     Constant(Uint64(v64))
 }
-
-/*
-fn dec_int_width(v64: u64) -> Token {
-    match i32::try_from(v64) {
-        Ok(v32) => Constant(Int32(v32)),
-        Err(_) => Constant(Int64(v64)),
-    }
-}
-
-fn nondec_int_width(q64: u64) -> Token {
-    match i32::try_from(q64) {
-        Ok(v32) => Constant(Int32(v32)),
-        Err(_) => match u32::try_from(q64) {
-            Ok(q32) => Constant(Uint32(q32)),
-            Err(_) => match i64::try_from(q64) {
-                Ok(v64) => Constant(Int64(v64)),
-                Err(_) => Constant(Uint64(q64)),
-            }
-        },
-    }
-}
-*/
 
 pub fn int_constant(input: Span) -> IResult<Span, LocatedToken> {
     error::context(
@@ -224,14 +205,11 @@ mod test {
     use super::int_constant_hex;
     use super::int_constant_oct;
 
-    use crate::lexer::ConstantType;
     use crate::lexer::ConstantType::Int32;
     use crate::lexer::ConstantType::Int64;
     use crate::lexer::ConstantType::Uint32;
     use crate::lexer::ConstantType::Uint64;
-    use crate::lexer::LocatedToken;
     use crate::lexer::Span;
-    use crate::lexer::Token;
     use crate::lexer::Token::Constant;
 
     #[test]
@@ -256,8 +234,8 @@ mod test {
         let s = Span::from("0 a");
 
         match int_constant_dec(s) {
-            Ok((r, t)) => panic!("Expected failure to match token but matched {t:?}"),
-            Err(e) => (),
+            Ok((r, t)) => panic!("Expected failure to match token but matched ({r}, {t:?}"),
+            Err(_) => (),
         }
     }
 
@@ -284,7 +262,18 @@ mod test {
         let s = Span::from("9223372036854775808 a");
 
         match int_constant_dec(s) {
-            Ok((r, t)) => panic!("Expected match failure as constant value is too large"),
+            Ok((r, t)) => panic!("Expected match failure as constant value is too large but matched ({r}, {t:?}"),
+            Err(_) => (),
+        }
+    }
+
+    #[test]
+    fn test_dec_ul_suffix_above_range() {
+        // uint64_max is    18446744073709551615 (i.e. 2^64 -1)
+        let s = Span::from("18446744073709551616 a");
+
+        match int_constant_dec(s) {
+            Ok((r, t)) => panic!("Expected match failure as constant value is too large but matched ({r}, {t:?}"),
             Err(_) => (),
         }
     }
@@ -295,7 +284,7 @@ mod test {
         let s = Span::from("0x10000000000000000 a");
 
         match int_constant_hex(s) {
-            Ok((r, t)) => panic!("Expected match failure as constant value is too large"),
+            Ok((r, t)) => panic!("Expected match failure as constant value is too large but matched ({r}, {t:?}"),
             Err(_) => (),
         }
     }
@@ -306,7 +295,7 @@ mod test {
         let s = Span::from("02000000000000000000000 a");
 
         match int_constant_oct(s) {
-            Ok((r, t)) => panic!("Expected match failure as constant value is too large"),
+            Ok((r, t)) => panic!("Expected match failure as constant value is too large but matched ({r}, {t:?}"),
             Err(_) => (),
         }
     }
@@ -774,7 +763,7 @@ mod test {
 
         match int_constant(s) {
             Ok((r, t)) => panic!("expected not to match token of Constant(Int64(1)) but got ({r}, {t:?})"),
-            Err(e) => (),
+            Err(_) => (),
         }
     }
 
@@ -785,7 +774,7 @@ mod test {
 
         match int_constant(s) {
             Ok((r, t)) => panic!("expected not to match token of Constant(Int64(1)) but got ({r}, {t:?})"),
-            Err(e) => (),
+            Err(_) => (),
         }
     }
 
@@ -1079,7 +1068,47 @@ mod test {
 
         match int_constant(s) {
             Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),
-            Err(e) => (),
+            Err(_) => (),
+        }
+    }
+
+    #[test]
+    fn test_dec_ulu_suffix_rejected() {
+        let s = Span::from("1ulu a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),
+            Err(_) => (),
+        }
+    }
+
+    #[test]
+    fn test_dec_lul_suffix_rejected() {
+        let s = Span::from("1lul a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),
+            Err(_) => (),
+        }
+    }
+
+    #[test]
+    fn test_hex_lul_suffix_rejected() {
+        let s = Span::from("0x1lul a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),
+            Err(_) => (),
+        }
+    }
+
+    #[test]
+    fn test_oct_lul_suffix_rejected() {
+        let s = Span::from("01lul a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),
+            Err(_) => (),
         }
     }
 
