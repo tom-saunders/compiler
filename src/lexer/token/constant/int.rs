@@ -35,10 +35,9 @@ fn is_nonzero_digit(c: char) -> bool {
 fn int_constant_dec(input: Span) -> IResult<Span, LocatedToken> {
     let (rest, matched) = error::context(
         "int_constant_dec",
-        recognize(terminated(
-            pair(satisfy(is_nonzero_digit), digit0),
-            peek(not(alphanumeric1)),
-        )),
+        recognize(
+            pair(satisfy(is_nonzero_digit), digit0)
+        ),
     )(input)?;
     match matched.fragment().parse::<i64>() {
         Ok(value) => Ok((
@@ -52,7 +51,7 @@ fn int_constant_dec(input: Span) -> IResult<Span, LocatedToken> {
 fn int_constant_hex(input: Span) -> IResult<Span, LocatedToken> {
     let (rest, matched) = error::context(
         "int_constant_hex",
-        delimited(tag("0x"), hex_digit1, peek(not(alphanumeric1))),
+        preceded(tag("0x"), hex_digit1),
     )(input)?;
     match u64::from_str_radix(matched.fragment(), 16) {
         Ok(value) => Ok((
@@ -66,10 +65,8 @@ fn int_constant_hex(input: Span) -> IResult<Span, LocatedToken> {
 fn int_constant_oct(input: Span) -> IResult<Span, LocatedToken> {
     let (rest, matched) = error::context(
         "int_constant_oct",
-        terminated(
-            recognize(pair(tag("0"), oct_digit0)),
-            peek(not(alphanumeric1)),
-        ),
+            recognize(pair(tag("0"), oct_digit0))
+        ,
     )(input)?;
     match u64::from_str_radix(matched.fragment(), 8) {
         Ok(value) => Ok((
@@ -103,7 +100,10 @@ fn nondec_int_width(q64: u64) -> Token {
 pub fn int_constant(input: Span) -> IResult<Span, LocatedToken> {
     error::context(
         "int_constant",
-        alt((int_constant_dec, int_constant_hex, int_constant_oct)),
+        terminated(
+            alt((int_constant_dec, int_constant_hex, int_constant_oct)),
+            peek(not(alphanumeric1))
+        ),
     )(input)
 }
 
@@ -946,6 +946,16 @@ mod test {
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_trailing_junk_after_constant() {
+        let s = Span::from("123abc a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),
+            Err(e) => (),
+        }
     }
 
 }
