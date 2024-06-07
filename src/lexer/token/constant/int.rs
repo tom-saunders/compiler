@@ -552,6 +552,400 @@ mod test {
         assert_eq!(exp_token, token);
     }
 
+    #[test]
+    fn test_sized_u_suffix_min_uint32() {
+        let s = Span::from("1u a");
 
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint32(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint32(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_U_suffix_min_uint32() {
+        let s = Span::from("1U a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint32(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint32(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_l_suffix_min_int64() {
+        let s = Span::from("1l a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Int64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Int64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_L_suffix_min_int64() {
+        let s = Span::from("1L a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Int64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Int64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_ll_suffix_min_int64() {
+        let s = Span::from("1ll a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Int64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Int64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_LL_suffix_min_int64() {
+        let s = Span::from("1LL a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Int64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Int64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_lL_suffix_fails() {
+        let s = Span::from("1lL a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token of Constant(Int64(1)) but got ({r}, {t:?})"),
+            Err(e) => (),
+        }
+    }
+
+    #[test]
+    fn test_sized_Ll_suffix_fails() {
+        let s = Span::from("1Ll a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token of Constant(Int64(1)) but got ({r}, {t:?})"),
+            Err(e) => (),
+        }
+    }
+
+    
+
+    #[test]
+    fn test_sized_ul_suffix_min_uint64() {
+        let s = Span::from("1ul a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_lu_suffix_min_int64() {
+        let s = Span::from("1lu a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_Ul_suffix_min_uint64() {
+        let s = Span::from("1Ul a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_lU_suffix_min_int64() {
+        let s = Span::from("1lU a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_uL_suffix_min_uint64() {
+        let s = Span::from("1uL a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_Lu_suffix_min_int64() {
+        let s = Span::from("1Lu a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_UL_suffix_min_uint64() {
+        let s = Span::from("1UL a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_LU_suffix_min_int64() {
+        let s = Span::from("1LU a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+    
+    #[test]
+    fn test_sized_ull_suffix_min_uint64() {
+        let s = Span::from("1ull a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_llu_suffix_min_int64() {
+        let s = Span::from("1llu a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+    
+    #[test]
+    fn test_sized_Ull_suffix_min_uint64() {
+        let s = Span::from("1Ull a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_llU_suffix_min_int64() {
+        let s = Span::from("1llU a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+    
+    #[test]
+    fn test_sized_uLL_suffix_min_uint64() {
+        let s = Span::from("1uLL a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_LLu_suffix_min_int64() {
+        let s = Span::from("1LLu a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+    
+    #[test]
+    fn test_sized_ULL_suffix_min_uint64() {
+        let s = Span::from("1ULL a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
+
+    #[test]
+    fn test_sized_LLU_suffix_min_int64() {
+        let s = Span::from("1LLU a");
+
+        let (rest, loc_token) = match int_constant(s) {
+            Ok((r, t)) => (r, t),
+            Err(e) => panic!("expected to match token of Constant(Uint64(1)) but got err: {e})"),
+        };
+
+        let token = loc_token.token;
+
+        let exp_token = Constant(Uint64(1));
+
+        assert_eq!(&" a", rest.fragment());
+        assert_eq!(exp_token, token);
+    }
 
 }
