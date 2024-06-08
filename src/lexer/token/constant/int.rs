@@ -1,12 +1,12 @@
-use crate::lexer::ConstantType::Int32;
-use crate::lexer::ConstantType::Int64;
-use crate::lexer::ConstantType::Uint32;
-use crate::lexer::ConstantType::Uint64;
+use crate::lexer::LiteralType::Int32;
+use crate::lexer::LiteralType::Int64;
+use crate::lexer::LiteralType::Uint32;
+use crate::lexer::LiteralType::Uint64;
 use crate::lexer::LocatedToken;
 use crate::lexer::Location;
 use crate::lexer::Span;
 use crate::lexer::Token;
-use crate::lexer::Token::Constant;
+use crate::lexer::Token::Literal;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
@@ -143,8 +143,8 @@ fn int_constant_oct(input: Span) -> IResult<Span, LocatedToken> {
 /// decimal literal with no suffix
 fn int32_or_int64(v64: i64) -> Token {
     match v64 {
-        0..=0x7fff_ffff => Constant(Int32(i32::try_from(v64).unwrap())),
-        0x8000_0000..=0x7fff_ffff_ffff_ffff => Constant(Int64(v64)),
+        0..=0x7fff_ffff => Literal(Int32(i32::try_from(v64).unwrap())),
+        0x8000_0000..=0x7fff_ffff_ffff_ffff => Literal(Int64(v64)),
         _ => panic!("should never get negative values in int32_or_int64"),
     }
 }
@@ -152,25 +152,25 @@ fn int32_or_int64(v64: i64) -> Token {
 /// nondecimal literal with no suffix
 fn int32_or_uint32_or_int64_or_uint64(v64: u64) -> Token {
     match v64 {
-        0..=0x7fff_ffff => Constant(Int32(i32::try_from(v64).unwrap())),
-        0x8000_0000..=0xffff_ffff => Constant(Uint32(u32::try_from(v64).unwrap())),
-        0x1_0000_0000..=0x7fff_ffff_ffff_ffff => Constant(Int64(i64::try_from(v64).unwrap())),
-        _ => Constant(Uint64(v64)),
+        0..=0x7fff_ffff => Literal(Int32(i32::try_from(v64).unwrap())),
+        0x8000_0000..=0xffff_ffff => Literal(Uint32(u32::try_from(v64).unwrap())),
+        0x1_0000_0000..=0x7fff_ffff_ffff_ffff => Literal(Int64(i64::try_from(v64).unwrap())),
+        _ => Literal(Uint64(v64)),
     }
 }
 
 /// any literal with only u suffix
 fn uint32_or_uint64(v64: u64) -> Token {
     match v64 {
-        0..=0xffff_ffff => Constant(Uint32(u32::try_from(v64).unwrap())),
-        _ => Constant(Uint64(v64)),
+        0..=0xffff_ffff => Literal(Uint32(u32::try_from(v64).unwrap())),
+        _ => Literal(Uint64(v64)),
     }
 }
 
 /// decimal literal with only l suffix
 fn int64(v64: i64) -> Token {
     match v64 {
-        0..=0x7fff_ffff_ffff_ffff => Constant(Int64(v64)),
+        0..=0x7fff_ffff_ffff_ffff => Literal(Int64(v64)),
         _ => panic!("should never get negative values in int64"),
     }
 }
@@ -178,14 +178,14 @@ fn int64(v64: i64) -> Token {
 /// nondecimal literal with only l suffix
 fn int64_or_uint64(v64: u64) -> Token {
     match v64 {
-        0..=0x7fff_ffff_ffff_ffff => Constant(Int64(i64::try_from(v64).unwrap())),
-        _ => Constant(Uint64(v64)),
+        0..=0x7fff_ffff_ffff_ffff => Literal(Int64(i64::try_from(v64).unwrap())),
+        _ => Literal(Uint64(v64)),
     }
 }
 
 /// literal with both u and l suffix
 fn uint64(v64: u64) -> Token {
-    Constant(Uint64(v64))
+    Literal(Uint64(v64))
 }
 
 pub fn int_constant(input: Span) -> IResult<Span, LocatedToken> {
@@ -205,12 +205,12 @@ mod test {
     use super::int_constant_hex;
     use super::int_constant_oct;
 
-    use crate::lexer::ConstantType::Int32;
-    use crate::lexer::ConstantType::Int64;
-    use crate::lexer::ConstantType::Uint32;
-    use crate::lexer::ConstantType::Uint64;
+    use crate::lexer::LiteralType::Int32;
+    use crate::lexer::LiteralType::Int64;
+    use crate::lexer::LiteralType::Uint32;
+    use crate::lexer::LiteralType::Uint64;
     use crate::lexer::Span;
-    use crate::lexer::Token::Constant;
+    use crate::lexer::Token::Literal;
 
     #[test]
     fn test_zero() {
@@ -223,7 +223,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(0));
+        let exp_token = Literal(Int32(0));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -250,7 +250,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(0));
+        let exp_token = Literal(Int32(0));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -311,7 +311,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(1));
+        let exp_token = Literal(Int32(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -331,7 +331,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(2147483647));
+        let exp_token = Literal(Int32(2147483647));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -351,7 +351,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(2147483648));
+        let exp_token = Literal(Int64(2147483648));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -371,7 +371,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(9223372036854775807));
+        let exp_token = Literal(Int64(9223372036854775807));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -388,7 +388,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(0));
+        let exp_token = Literal(Int32(0));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -405,7 +405,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(0o17777777777));
+        let exp_token = Literal(Int32(0o17777777777));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -422,7 +422,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint32(0o20000000000));
+        let exp_token = Literal(Uint32(0o20000000000));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -439,7 +439,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint32(0o37777777777));
+        let exp_token = Literal(Uint32(0o37777777777));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -456,7 +456,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(0o40000000000));
+        let exp_token = Literal(Int64(0o40000000000));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -473,7 +473,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(0o777777777777777777777));
+        let exp_token = Literal(Int64(0o777777777777777777777));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -490,7 +490,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(0o1000000000000000000000));
+        let exp_token = Literal(Uint64(0o1000000000000000000000));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -507,7 +507,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(0o1777777777777777777777));
+        let exp_token = Literal(Uint64(0o1777777777777777777777));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -526,7 +526,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(0));
+        let exp_token = Literal(Int32(0));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -543,7 +543,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int32(0x7fffffff));
+        let exp_token = Literal(Int32(0x7fffffff));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -560,7 +560,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint32(0x80000000));
+        let exp_token = Literal(Uint32(0x80000000));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -577,7 +577,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint32(0xffffffff));
+        let exp_token = Literal(Uint32(0xffffffff));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -594,7 +594,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(0x100000000));
+        let exp_token = Literal(Int64(0x100000000));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -611,7 +611,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(0x7fffffffffffffff));
+        let exp_token = Literal(Int64(0x7fffffffffffffff));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -628,7 +628,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(0x8000000000000000));
+        let exp_token = Literal(Uint64(0x8000000000000000));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -645,7 +645,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(0xffffffffffffffff));
+        let exp_token = Literal(Uint64(0xffffffffffffffff));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -662,7 +662,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint32(1));
+        let exp_token = Literal(Uint32(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -680,7 +680,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint32(1));
+        let exp_token = Literal(Uint32(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -697,7 +697,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(1));
+        let exp_token = Literal(Int64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -715,7 +715,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(1));
+        let exp_token = Literal(Int64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -732,7 +732,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(1));
+        let exp_token = Literal(Int64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -750,7 +750,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Int64(1));
+        let exp_token = Literal(Int64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -789,7 +789,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -806,7 +806,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -824,7 +824,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -842,7 +842,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -860,7 +860,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -878,7 +878,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -896,7 +896,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -914,7 +914,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -931,7 +931,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -948,7 +948,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -966,7 +966,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -984,7 +984,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -1002,7 +1002,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -1020,7 +1020,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -1038,7 +1038,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -1056,7 +1056,7 @@ mod test {
 
         let token = loc_token.token;
 
-        let exp_token = Constant(Uint64(1));
+        let exp_token = Literal(Uint64(1));
 
         assert_eq!(&" a", rest.fragment());
         assert_eq!(exp_token, token);
@@ -1105,6 +1105,16 @@ mod test {
     #[test]
     fn test_oct_lul_suffix_rejected() {
         let s = Span::from("01lul a");
+
+        match int_constant(s) {
+            Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),
+            Err(_) => (),
+        }
+    }
+
+    #[test]
+    fn test_dec_trailing_dot_rejected() {
+        let s = Span::from("1lul. a");
 
         match int_constant(s) {
             Ok((r, t)) => panic!("expected not to match token but matched: ({r}, {t:?})"),

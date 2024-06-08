@@ -1,7 +1,9 @@
-use crate::lexer::LocatedToken;
-use crate::lexer::Location;
+use crate::lexer::LocatedToken as LT;
+use crate::lexer::Location as L;
 use crate::lexer::Span;
-use crate::lexer::Token::{CloseBrace, CloseParen, OpenBrace, OpenParen, Semicolon};
+use crate::lexer::Token::Punctuation as P;
+use crate::lexer::PunctuationType as PT;
+
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
@@ -9,25 +11,19 @@ use nom::combinator::map;
 use nom::error;
 use nom::IResult;
 
-pub fn punctuation(input: Span) -> IResult<Span, LocatedToken> {
+pub fn punctuation(input: Span) -> IResult<Span, LT> {
     error::context(
         "punctuation",
         alt((
-            map(tag("("), |_| {
-                LocatedToken::of(Location::from(&input), OpenParen)
-            }),
-            map(tag(")"), |_| {
-                LocatedToken::of(Location::from(&input), CloseParen)
-            }),
-            map(tag("{"), |_| {
-                LocatedToken::of(Location::from(&input), OpenBrace)
-            }),
-            map(tag("}"), |_| {
-                LocatedToken::of(Location::from(&input), CloseBrace)
-            }),
-            map(tag(";"), |_| {
-                LocatedToken::of(Location::from(&input), Semicolon)
-            }),
+            map(tag("("), |m| LT::of(L::from(&m), P(PT::OpenParen))),
+            map(tag(")"), |m| LT::of(L::from(&m), P(PT::CloseParen))),
+            map(tag("{"), |m| LT::of(L::from(&m), P(PT::OpenBrace))),
+            map(tag("}"), |m| LT::of(L::from(&m), P(PT::CloseBrace))),
+            map(tag(";"), |m| LT::of(L::from(&m), P(PT::Semicolon))),
+            map(tag("["), |m| LT::of(L::from(&m), P(PT::OpenSquare))),
+            map(tag("]"), |m| LT::of(L::from(&m), P(PT::CloseSquare))),
+            map(tag(","), |m| LT::of(L::from(&m), P(PT::Comma))),
+            map(tag(":"), |m| LT::of(L::from(&m), P(PT::Colon))),
         )),
     )(input)
 }
