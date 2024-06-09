@@ -9,3 +9,5 @@ lexer = { path = "lib/lexer" }
 parser = { path = "lib/parser" }
 generator = { path = "lib/generator" }
 emitter = { path = "lib/emitter" }
+assembler = { path = "lib/assembler" }
+clap = { version = "4.5.6", features = ["derive"] }

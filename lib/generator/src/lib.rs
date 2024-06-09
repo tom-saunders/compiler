@@ -1,5 +1,9 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+use parser::{self, AbstractSyntaxTree};
+
+pub type Generated = ();
+
+pub fn generate<'a>(_ast: &AbstractSyntaxTree) -> Result<Generated, ()> {
+    todo!()
 }
 
 #[cfg(test)]
@@ -7,8 +11,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn empty_test() {
+        todo!()
     }
 }
