@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+preprocessor = { path = "lib/preprocessor" }
+lexer = { path = "lib/lexer" }
+parser = { path = "lib/parser" }
+generator = { path = "lib/generator" }
+emitter = { path = "lib/emitter" }
