@@ -1,3 +1,5 @@
+mod input;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocatedToken {
     location: NestedLocation,

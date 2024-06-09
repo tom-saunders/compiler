@@ -7,31 +7,25 @@ use std::{
 };
 
 trait IoTrait {
-    fn read_to_string(&self, path: &Path) -> io::Result<String>;
     fn write(&self, path: &Path, contents: &str) -> io::Result<()>;
 }
 
 trait CompilerProc {
-    fn wrap_and_spawn(&self) -> Result<Child, io::Error>;
+    fn wrap_and_spawn(&self, src_path: &Path, out_path: &Path) -> Result<Child, io::Error>;
 }
 
 struct DefaultImpl;
 
 impl IoTrait for DefaultImpl {
-    fn read_to_string(&self, path: &Path) -> io::Result<String> {
-        fs::read_to_string(path)
-    }
     fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
         fs::write(path, contents)
     }
 }
 
 impl CompilerProc for DefaultImpl {
-    fn wrap_and_spawn(&self) -> Result<Child, io::Error> {
+    fn wrap_and_spawn(&self, src_path: &Path, out_path: &Path) -> Result<Child, io::Error> {
         Command::new("gcc")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .args(["-E", "-"])
+            .args(["-E", src_path.to_str().unwrap(), "-o", out_path.to_str().unwrap()])
             .spawn()
     }
 }
@@ -42,37 +36,26 @@ fn preprocess_internal(
     io_handle: &impl IoTrait,
     compiler: &impl CompilerProc,
 ) -> io::Result<String> {
-    let input = io_handle.read_to_string(src_path)?;
-
-    if !input.is_ascii() {
-        panic!("Naive implementation, only handles input in ASCII range for simplicity");
-    }
 
     let mut preprocess = compiler
-        .wrap_and_spawn()
+        .wrap_and_spawn(src_path, out_path)
         .expect("Error spawning preprocessor");
 
-    let mut stdin = preprocess.stdin.take().unwrap();
-
-    thread::spawn(move || {
-        stdin
-            .write_all(input.as_bytes())
-            .expect("Failed to write input to preprocessor");
-    });
-
     let exit = preprocess
-        .wait_with_output()
+        .wait()
         .expect("Failed to wait on preprocessor");
 
-    match &exit.status.code() {
+    match &exit.code() {
         Some(0) => println!("Preprocessor ran successfully"),
         Some(c) => panic!("Preprocessor exited with nonzero code: {c}"),
         None => panic!("Preprocessor terminated due to signal"),
     };
 
-    let result = String::from_utf8_lossy(&exit.stdout).to_string();
+    let result = fs::read_to_string(out_path).expect("Unable to read written preprocessor file");
 
-    io_handle.write(out_path, &result)?;
+    if ! result.is_ascii() {
+        panic!("Naive implementation only handles input in ASCII");
+    }
 
     Ok(result)
 }
@@ -88,13 +71,14 @@ mod tests {
 
     use super::*;
 
+    use tempfile::{self, NamedTempFile};
+
     struct IncludeCompiler;
     impl CompilerProc for IncludeCompiler {
-        fn wrap_and_spawn(&self) -> Result<Child, io::Error> {
+        fn wrap_and_spawn(&self, src_path: &Path, out_path: &Path) -> Result<Child, io::Error> {
             Command::new("gcc")
-                .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
-                .args(["-I", "src/asset", "-E", "-"])
+                .args(["-I", "src/asset", "-E", src_path.to_str().unwrap(), "-o", out_path.to_str().unwrap()])
                 .spawn()
         }
     }
@@ -103,18 +87,15 @@ mod tests {
     fn test_no_include() {
         struct IoTest;
         impl IoTrait for IoTest {
-            fn read_to_string(&self, path: &Path) -> io::Result<String> {
-                let contents = include_str!("asset/return_0.c");
-                Ok(contents.to_string())
-            }
-
             fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
                 Ok(())
             }
         }
 
-        let src_path: PathBuf = PathBuf::new();
-        let out_path: PathBuf = PathBuf::new();
+        let tmp = tempfile::NamedTempFile::new().expect("Unable to create temp file for test");
+
+        let src_path: PathBuf = PathBuf::from("src/asset/return_0.c");
+        let out_path: PathBuf = PathBuf::from(tmp.path());
         let io_test: IoTest = IoTest;
         let compiler = DefaultImpl;
         let result = preprocess_internal(&src_path, &out_path, &io_test, &compiler)
@@ -128,18 +109,15 @@ mod tests {
     fn test_include() {
         struct IoTest;
         impl IoTrait for IoTest {
-            fn read_to_string(&self, path: &Path) -> io::Result<String> {
-                let contents = include_str!("asset/include_a.c");
-                Ok(contents.to_string())
-            }
-
             fn write(&self, path: &Path, contents: &str) -> io::Result<()> {
                 Ok(())
             }
         }
+        
+        let tmp = tempfile::NamedTempFile::new().expect("Unable to create temp file for test");
 
-        let src_path: PathBuf = PathBuf::new();
-        let out_path: PathBuf = PathBuf::new();
+        let src_path: PathBuf = PathBuf::from("src/asset/include_a.c");
+        let out_path: PathBuf = PathBuf::from(tmp.path());
         let io_test: IoTest = IoTest;
         let compiler = IncludeCompiler;
         let result = preprocess_internal(&src_path, &out_path, &io_test, &compiler)
