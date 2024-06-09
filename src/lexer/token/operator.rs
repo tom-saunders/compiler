@@ -43,11 +43,11 @@ pub fn operator(input: Span) -> IResult<Span, LT> {
                 map(terminated(tag(">>"), peek(not(tag("=")))), |m| LT::of(L::from(&m), O(OT::GreaterThanGreaterThan))),
                 map(tag(">>="), |m| LT::of(L::from(&m), O(OT::GreaterThanGreaterThanEql))),
             )), alt((
-                map(terminated(tag("<"), peek(not(one_of("<=")))), |m| LT::of(L::from(&m), O(OT::LessThan))),
+                map(terminated(tag("<"), peek(not(one_of("<=%:")))), |m| LT::of(L::from(&m), O(OT::LessThan))),
                 map(tag("<="), |m| LT::of(L::from(&m), O(OT::LessThanEql))),
                 map(terminated(tag("<<"), peek(not(tag("=")))), |m| LT::of(L::from(&m), O(OT::LessThanLessThan))),
                 map(tag("<<="), |m| LT::of(L::from(&m), O(OT::LessThanLessThanEql))),
-                map(terminated(tag("%"), peek(not(tag("=")))), |m| LT::of(L::from(&m), O(OT::Percent))),
+                map(terminated(tag("%"), peek(not(one_of("=>")))), |m| LT::of(L::from(&m), O(OT::Percent))),
                 map(tag("%="), |m| LT::of(L::from(&m), O(OT::PercentEql))),
                 map(terminated(tag("|"), peek(not(one_of("|=")))), |m| LT::of(L::from(&m), O(OT::Pipe))),
                 map(tag("|="), |m| LT::of(L::from(&m), O(OT::PipeEql))),
