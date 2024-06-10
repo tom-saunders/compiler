@@ -319,7 +319,10 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             '!' => {
                 // bang
                 // one of ! !=
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::BangEql),
+                    _ => state.consume(1, Token::Bang),
+                }
             },
             '^' => {
                 // caret
