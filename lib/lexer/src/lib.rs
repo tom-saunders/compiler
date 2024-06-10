@@ -1,4 +1,5 @@
 mod tokens;
+use core::hash;
 use std::rc::Rc;
 
 use nom::{bytes::complete::{is_not, tag, take}, character::complete::{multispace1, one_of}, combinator::{consumed, not}, multi::many0, sequence::{delimited, pair, preceded, tuple}};
@@ -38,8 +39,13 @@ pub struct Location<'a> {
     input: &'a str,
 }
 
+mod state {
+    use super::LocatedToken;
+    use super::Location;
+    use super::Token;
+    use super::process_linemarker;
 #[derive(Debug, PartialEq, Clone)]
-struct LexState<'a> {
+pub struct LexState<'a> {
     input: &'a str,
     column: usize,
     file_line: u32,
@@ -50,14 +56,14 @@ struct LexState<'a> {
 }
 
 impl<'a> LexState<'a> {
-    fn new(input: &'a str) -> Self {
+
+    pub fn new(input: &'a str) -> Self {
         // we assume that the input starts with a gcc preprocessor linemarker (e.g.):
         // ^# 0 "some_input.c"$
         // see: https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html 
         // 
         let eol = input.find('\n').expect("We assume at least one complete line");
         let linemarker = &input[..=eol];
-        println!("linemarker: [{linemarker}]");
 
         let (file_line, file_name, _) = match process_linemarker(linemarker) {
             Err(e) => panic!("Error reading first input line as a linemarker: {e}"),
@@ -73,19 +79,23 @@ impl<'a> LexState<'a> {
         LexState{input, column, file_line, file_name, seen_error: false, located_tokens, file_hist}
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.input.is_empty()
     }
 
-    fn peek(&self) -> char {
+    pub fn peek(&self) -> char {
         self.input.chars().nth(0).expect("Expect at least one char in input")
     }
 
-    fn peek_nth(&self, n: usize) -> Option<char> {
+    pub fn skip(&mut self, n: usize) {
+        self.input = &self.input[n..];
+    }
+
+    pub fn peek_nth(&self, n: usize) -> Option<char> {
         self.input.chars().nth(n)
     }
 
-    fn consume(&mut self, n: usize, token: Token<'a>) {
+    pub fn consume(&mut self, n: usize, token: Token<'a>) {
         
         let mut locations = self.file_hist.clone();
         locations.push(Location{line: self.file_line, column: self.column, file: &self.file_name, input: &self.input[..n]});
@@ -96,13 +106,13 @@ impl<'a> LexState<'a> {
         self.column += n;
     }
 
-    fn newline(&mut self) {
+    pub fn newline(&mut self) {
         self.file_line += 1;
         self.column = 1;
         self.input = &self.input[1..];
     }
     
-    fn enter_file(&mut self, file: &'a str, line: u32, skip: usize) {
+    pub fn enter_file(&mut self, file: &'a str, line: u32, skip: usize) {
         self.file_hist.push(Location{line: self.file_line, column: self.column, file: &self.file_name, input: &self.input[..skip]});
 
         self.file_name = file;
@@ -111,16 +121,41 @@ impl<'a> LexState<'a> {
         self.input = &self.input[skip..];
     }
 
-    fn exit_file(&mut self, file: &'a str, line: u32, skip: usize) {
-        let location = self.file_hist.pop().expect("Expect at least one file");
+    pub fn exit_file(&mut self, file: &'a str, line: u32, skip: usize) {
+        self.file_hist.pop().expect("Expect at least one file");
 
         self.file_name = file;
         self.file_line = line;
         self.column = 1;
         self.input = &self.input[skip..];
-
     }
+
+    pub fn move_in_file(&mut self, line: u32, skip: usize) {
+        self.file_line = line;
+        self.column = 1;
+        self.input = &self.input[skip..];
+    }
+    
+    pub fn input(&self) -> &'a str {
+        &self.input
+    }
+
+    pub fn file_name(&self) -> &str {
+        &self.file_name
+    }
+
+    pub fn file_line(&self) -> u32 {
+        self.file_line
+    }
+
+    pub fn column(&self) -> usize {
+        self.column
+    }
+
 }
+}
+
+use state::LexState;
 
 fn process_linemarker(linemarker: &str) -> Result<(u32, &str, (bool, bool, bool, bool)), String> {
     let processing = linemarker.strip_prefix("# ").ok_or(format!("Expected linemarker to start [# ] but got [{linemarker}]"))?;
@@ -151,6 +186,10 @@ fn process_linemarker(linemarker: &str) -> Result<(u32, &str, (bool, bool, bool,
         Some(p) => (true, p),
         None => (false, processing),
     };
+
+    if processing.len() > 2 {
+        eprintln!("Unexpected trailing input on linemarker: [{processing}]");
+    }
     Ok((line, file, (one, two, three, four)))
 }
 
@@ -164,14 +203,46 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             '#' => {
                 // either a linemarker (which we can deal with)
                 // or a #pragma or an #ident (which we ?ignore?)
-                todo!()
+                let hashline = match state.input().find('\n') {
+                    Some(n) => &state.input()[..n + 1],
+                    None => {
+                        eprintln!("{}:{}:{} - warn - Found hashline without terminating newline", state.file_name(), state.file_line(), state.column());
+                        state.input()
+                    },
+                };
+                match process_linemarker(hashline) {
+                    Ok((line, file, (one, two, _, _))) => {
+                        if one {
+                            println!("enter: {file} at {line}");
+                            state.enter_file(file, line, hashline.len());
+                        } else if two {
+                            println!("exit: from {} into {} at {}", state.file_name(), file, line);
+                            state.exit_file(file, line, hashline.len());
+                        } else {
+                            println!("move: {} at {}", file, line);
+                            state.move_in_file(line, hashline.len());
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("{}:{}:{} - warn - Didn't match a linemarker with err: [{}]", state.file_name(), state.file_line(), state.column(), e);
+                        eprintln!("{}:{}:{} - warn - linemarker input was: [{}]", state.file_name(), state.file_line(), state.column(), hashline);
+                        state.skip(hashline.len());
+                    },
+                }
             },
             '\n' => {
                 state.newline();
             },
             '\t' | '\r' | ' ' => {
                 // non-newline whitespace
-                todo!()
+                let whitespaces = match state.input().find(|c| c != '\t' && c != '\r' && c != ' ') {
+                    Some(n) => n,
+                    None => {
+                        eprintln!("{}:{}:{} - warn trailing whitespace at end of file", state.file_name(), state.file_line(), state.column());
+                        state.input().len()
+                    },
+                };
+                state.skip(whitespaces);
             },
             'a'..='z' | 'A'..='Z' | '_' => {
                 // identifier or keyword
@@ -333,8 +404,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_test() {
+    fn test_return_0() {
         let input = include_str!("asset/return_0.i");
+
+        lex(input);
+    }
+
+    #[test]
+    fn test_include_a() {
+        let input = include_str!("asset/include_a.i");
 
         lex(input);
     }
