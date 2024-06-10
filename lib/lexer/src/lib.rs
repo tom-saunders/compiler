@@ -332,16 +332,19 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                     _ => state.consume(1, Token::Caret),
                 }
             },
-            ',' => {
-                // comma
-                // always a ,
-                state.consume(1, Token::Comma)
-            },
             ':' => {
                 // colon 
                 // one of : :>
                 // :> is a compat for ]
-                todo!()
+                match state.peek_nth(1) {
+                    Some('>') => state.consume(2, Token::RSqu),
+                    _ => state.consume(1, Token::Colon),
+                }
+            },
+            ',' => {
+                // comma
+                // always a ,
+                state.consume(1, Token::Comma)
             },
             '-' => {
                 // dash

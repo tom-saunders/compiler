@@ -7,8 +7,10 @@ pub enum Token<'a> {
     BangEql,
     Caret,
     CaretEql,
+    Colon,
     Comma,
     Dot,
     Ellipsis,
+    RSqu,
     Unknown(&'a str),
 }
