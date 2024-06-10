@@ -335,7 +335,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             ',' => {
                 // comma
                 // always a ,
-                todo!()
+                state.consume(1, Token::Comma)
             },
             ':' => {
                 // colon 
