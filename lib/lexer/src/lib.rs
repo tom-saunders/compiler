@@ -258,9 +258,46 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             },
             '.' => {
                 // one of
-                // decimal numeric float literal: .0 .1
+                // decimal numeric float literal: .0 .1 etc.
                 // or . ... 
-                todo!()
+                match state.peek_nth(1) {
+                    Some(c) => match c {
+                        '0'..='9' => {
+                            // decimal float literal
+                            todo!()
+                        },
+                        '.' => {
+                            // either two dots or an ellipsis
+                            match state.peek_nth(2) {
+                                Some(d) => match d {
+                                    '0'..='9' => {
+                                        // dot then a decimal float literal, but for simplicity emit the dot
+                                        // and then go back to the start
+                                        state.consume(1, Token::Dot)
+                                    },
+                                    '.' => {
+                                        // ellipsis
+                                        state.consume(3, Token::Ellipsis)
+                                    }
+                                    _ => {
+                                        // two dots
+                                        state.consume(1, Token::Dot);
+                                        state.consume(1, Token::Dot);
+                                    }
+                                },
+                                None => {
+                                    // EOF but we still emit
+                                    state.consume(1, Token::Dot);
+                                    state.consume(1, Token::Dot);
+                                }
+                            }
+                        }
+                    },
+                    None => {
+                        // EOF but still emit
+                        state.consume(1, Token::Dot)
+                    }
+                }
             },
             '\'' => {
                 // char literal

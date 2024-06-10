@@ -1,5 +1,6 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token<'a> {
-    CharLiteral(u8),
+    Dot,
+    Ellipsis,
     Unknown(&'a str),
 }
