@@ -310,7 +310,11 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             '&' => {
                 // ampersand
                 // one of & && &=
-                todo!()
+                match  state.peek_nth(1) {
+                    Some('&') => state.consume(2, Token::AmpAmp),
+                    Some('=') => state.consume(2, Token::AmpEql),
+                    _ => state.consume(1, Token::Amp),
+                }
             },
             '!' => {
                 // bang
