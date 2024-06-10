@@ -406,7 +406,6 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                 // one of < <: <= << <<= <%
                 // <: is a compat for [
                 // <% is a compat for {
-                todo!()
                 match state.peek_nth(1) {
                     Some(':') => state.consume(2, Token::LSquare),
                     Some('=') => state.consume(2, Token::LThEql),
@@ -424,52 +423,67 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                 // pct
                 // one of % %= %>
                 // %> is a compat for }
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::PctEql),
+                    Some('>') => state.consume(2, Token::RBrace),
+                    _ => state.consume(1, Token::Pct),
+                }
             },
             '|' => {
                 // pipe
                 // one of | || |=
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::PipeEql),
+                    Some('|') => state.consume(2, Token::PipePipe),
+                    _ => state.consume(1, Token::Pipe),
+                }
             },
             '+' => {
                 // plus
                 // one of + += ++
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::PlusEql),
+                    Some('+') => state.consume(2, Token::PlusPlus),
+                    _ => state.consume(1, Token::Plus),
+                }
             },
             '?' => {
                 // quest
                 // always a ? 
-                todo!()
+                state.consume(1, Token::Question)
             },
             ']' => {
                 // rbrace
                 // always a ] 
-                todo!()
+                state.consume(1, Token::RBrace)
             },
             ')' => {
                 // rparen
                 // always a )
-                todo!()
+                state.consume(1, Token::RParen)
             },
             ']' => {
                 // rsquare
                 // always a ]
-                todo!()
+                state.consume(1, Token::RSquare)
             },
             ';' => {
                 // semi
                 // always a ; 
-                todo!()
+                state.consume(1, Token::Semi)
             },
             '*' => {
                 // star
                 // one of * *=
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::StarEql),
+                    _ => state.consume(1, Token::Plus),
+                }
             },
             '~' => {
                 // tilde
                 // always a ~ 
-                todo!()
+                state.consume(1, Token::Tilde)
             },
             _ => {
                 println!("unhandled: {}", c);
