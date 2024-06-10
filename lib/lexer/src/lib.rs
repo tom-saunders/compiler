@@ -349,7 +349,12 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             '-' => {
                 // dash
                 // one of - -- -= ->
-                todo!()
+                match state.peek_nth(1) {
+                    Some('-') => state.consume(2, Token::DashDash),
+                    Some('=') => state.consume(2, Token::DashEql),
+                    Some('>') => state.consume(2, Token::DashGTh),
+                    _ => state.consume(1, Token::Dash),
+                }
             },
             '=' => {
                 // equal
