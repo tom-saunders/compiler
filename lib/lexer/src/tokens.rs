@@ -5,6 +5,8 @@ pub enum Token<'a> {
     AmpEql,
     Bang,
     BangEql,
+    Caret,
+    CaretEql,
     Dot,
     Ellipsis,
     Unknown(&'a str),

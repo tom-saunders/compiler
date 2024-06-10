@@ -327,7 +327,10 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             '^' => {
                 // caret
                 // one of ^ ^=
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::CaretEql),
+                    _ => state.consume(1, Token::Caret),
+                }
             },
             ',' => {
                 // comma
