@@ -15,6 +15,8 @@ pub enum Token<'a> {
     DashGTh,
     Dot,
     Ellipsis,
+    Eql,
+    EqlEql,
     RSqu,
     Unknown(&'a str),
 }
