@@ -337,7 +337,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                 // one of : :>
                 // :> is a compat for ]
                 match state.peek_nth(1) {
-                    Some('>') => state.consume(2, Token::RSqu),
+                    Some('>') => state.consume(2, Token::RSquare),
                     _ => state.consume(1, Token::Colon),
                 }
             },
@@ -359,32 +359,47 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             '=' => {
                 // equal
                 // one of = ==
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::EqlEql),
+                    _ => state.consume(1, Token::Eql),
+                }
             },
             '/' => {
                 // fslash
                 // one of / /=
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::FSlEql),
+                    _ => state.consume(1, Token::FSl),
+                }
             },
             '>' => {
                 // gthan
                 // one of > >= >> >>=
-                todo!()
+                match state.peek_nth(1) {
+                    Some('=') => state.consume(2, Token::GThEql),
+                    Some('>') => {
+                        match state.peek_nth(2) {
+                            Some('=') => state.consume(3, Token::GThGThEql),
+                            _ => state.consume(2, Token::GThGTh),
+                        }
+                    }
+                    _ => state.consume(1, Token::GTh),
+                }
             },
             '{' => {
                 // lbrace
-                // always a { 
-                todo!()
+                // always a {
+                state.consume(1, Token::LBrace)
             },
             '[' => {
                 // lsquare
                 // always a [
-                todo!()
+                state.consume(1, Token::LSquare)
             },
             '(' => {
                 // lparen
                 // always a ( 
-                todo!()
+                state.consume(1, Token::LParen)
             },
             '<' => {
                 // lthan
@@ -392,6 +407,18 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                 // <: is a compat for [
                 // <% is a compat for {
                 todo!()
+                match state.peek_nth(1) {
+                    Some(':') => state.consume(2, Token::LSquare),
+                    Some('=') => state.consume(2, Token::LThEql),
+                    Some('>') => {
+                        match state.peek_nth(2) {
+                            Some('=') => state.consume(3, Token::LThLThEql),
+                            _ => state.consume(2, Token::LThLTh),
+                        }
+                    }
+                    Some('%') => state.consume(2, Token::LBrace),
+                    _ => state.consume(1, Token::LTh),
+                }
             },
             '%' => {
                 // pct
