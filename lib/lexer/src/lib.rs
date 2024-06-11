@@ -60,8 +60,8 @@ impl<'a> LexState<'a> {
     pub fn new(input: &'a str) -> Self {
         // we assume that the input starts with a gcc preprocessor linemarker (e.g.):
         // ^# 0 "some_input.c"$
-        // see: https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html 
-        // 
+        // see: https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
+        //
         let eol = input.find('\n').expect("We assume at least one complete line");
         let linemarker = &input[..=eol];
 
@@ -70,13 +70,17 @@ impl<'a> LexState<'a> {
             Ok(o) => o,
         };
 
-        
+
         let input = &input[eol + 1..];
         let column = 1usize;
         let located_tokens: Vec<LocatedToken> = vec![];
         let file_hist = vec![Location{line: file_line, column, file: file_name, input: linemarker}];
-        
+
         LexState{input, column, file_line, file_name, seen_error: false, located_tokens, file_hist}
+    }
+
+    pub fn len(&self) -> usize {
+        self.input.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -96,12 +100,22 @@ impl<'a> LexState<'a> {
     }
 
     pub fn consume(&mut self, n: usize, token: Token<'a>) {
-        
         let mut locations = self.file_hist.clone();
         locations.push(Location{line: self.file_line, column: self.column, file: &self.file_name, input: &self.input[..n]});
         self.located_tokens.push(LocatedToken{locations, token});
 
-        
+
+        self.input = &self.input[n..];
+        self.column += n;
+    }
+
+    pub fn error(&mut self, n: usize) {
+        self.seen_error = true;
+        let mut locations = self.file_hist.clone();
+        locations.push(Location{line: self.file_line, column: self.column, file: &self.file_name, input: &self.input[..n]});
+        self.located_tokens.push(LocatedToken{locations, token: Token::Unknown(&self.input[..n])});
+
+
         self.input = &self.input[n..];
         self.column += n;
     }
@@ -111,7 +125,7 @@ impl<'a> LexState<'a> {
         self.column = 1;
         self.input = &self.input[1..];
     }
-    
+
     pub fn enter_file(&mut self, file: &'a str, line: u32, skip: usize) {
         self.file_hist.push(Location{line: self.file_line, column: self.column, file: &self.file_name, input: &self.input[..skip]});
 
@@ -135,7 +149,7 @@ impl<'a> LexState<'a> {
         self.column = 1;
         self.input = &self.input[skip..];
     }
-    
+
     pub fn input(&self) -> &'a str {
         &self.input
     }
@@ -150,6 +164,10 @@ impl<'a> LexState<'a> {
 
     pub fn column(&self) -> usize {
         self.column
+    }
+
+    pub fn seen_error(&self) -> bool {
+        self.seen_error
     }
 
 }
@@ -191,6 +209,188 @@ fn process_linemarker(linemarker: &str) -> Result<(u32, &str, (bool, bool, bool,
         eprintln!("Unexpected trailing input on linemarker: [{processing}]");
     }
     Ok((line, file, (one, two, three, four)))
+}
+
+fn lex_char_literal<'a>(state: &'a mut LexState) {
+    let this_line = match state.input().find('\n') {
+        Some(n) => &state.input()[..n],
+        None => &state.input(),
+    };
+
+    struct CharLitEndMatcher {
+        last: char,
+    }
+    impl CharLitEndMatcher {
+        fn do_match(&mut self, c: char) -> bool {
+            if c == '\'' && self.last != '\\' {
+                return true
+            }
+            self.last = c;
+            false
+        }
+    }
+
+    // setting last to '\\' here cheeses the fact that the first char is a ' :)
+    let mut clem = CharLitEndMatcher{last: '\\'};
+    match this_line.find(|c| clem.do_match(c)) {
+        None => {
+            eprintln!("{}:{}:{} - error - unterminated char literal", state.file_name(), state.file_line(), state.column());
+            state.error(this_line.len())
+        },
+        Some(1) => {
+            eprintln!("{}:{}:{} - error - empty char literal", state.file_name(), state.file_line(), state.column());
+            state.error(2)
+        },
+        Some(2) => {
+            let c = this_line.chars().nth(1).expect("If the terminating ' is at idx 2 then getting idx 1 should work");
+            let c_u8 = c.try_into().expect("Input should be constrained to ASCII");
+            state.consume(3, CharLit(c_u8))
+        },
+        Some(3) => {
+            let mut chars = this_line.chars();
+            // could be an escape or a multichar
+            match chars.nth(1).expect("Within valid &str") {
+                '\\' => {
+                    // ok so far
+                    match chars.next().expect("Within valid &str") {
+                        '0'..='7' => {
+                            let v = u8::from_str_radix(&this_line[2..3], 8).expect("we know this value should only contain octal valid chars");
+                            state.consume(4, CharLit(v))
+                        }
+                        '\'' => state.consume(4, CharLit(b'\'')),
+                        '\"' => state.consume(4, CharLit(b'\"')),
+                        '?' => state.consume(4, CharLit(b'?')),
+                        '\\' => state.consume(4, CharLit(b'\\')),
+                        'a' => state.consume(4, CharLit(0x07)),
+                        'b' => state.consume(4, CharLit(0x08)),
+                        'f' => state.consume(4, CharLit(0x0c)),
+                        'n' => state.consume(4, CharLit(b'\n')),
+                        'r' => state.consume(4, CharLit(b'\r')),
+                        't' => state.consume(4, CharLit(b'\t')),
+                        'v' => state.consume(4, CharLit(0x0b)),
+                        'x' => {
+                            eprintln!("{}:{}:{} - error - hex escape used with no following hex digits in char literal", state.file_name(), state.file_line(), state.column());
+                            state.error(4)
+                        }
+                        _ => {
+                            eprintln!("{}:{}:{} - error - unknown escape within char literal", state.file_name(), state.file_line(), state.column());
+                            state.error(4)
+                        },
+                    }
+                },
+                _ => {
+                    eprintln!("{}:{}:{} - error - multi-character char literal", state.file_name(), state.file_line(), state.column());
+                    state.error(4)
+                }
+            }
+        },
+        Some(4) => {
+            // either an octal escape \01 or a hex escape \xa or a multi-character char literal
+            let mut chars = this_line.chars();
+            match chars.nth(1).expect("Within valid &str") {
+                '\\' => {
+                    // escape
+                    match chars.next().expect("Within valid &str") {
+                        '0'..='7' => {
+                            match chars.next().expect("Within valid &str") {
+                                '0'..='7' => {
+                                    let v = u8::from_str_radix(&this_line[2..4], 8).expect("we know this value should only contain octal valid chars");
+                                    state.consume(5, CharLit(v))
+                                },
+                                _ => {
+                                    eprintln!("{}:{}:{} - error - unexpected escape or multi-character char literal", state.file_name(), state.file_line(), state.column());
+                                    state.error(5)
+                                }
+                            }
+                        },
+                        'x' => {
+                            match chars.next().expect("Within valid &str") {
+                                '0'..='9' | 'a'..='f' | 'A'..='F' => {
+                                    let v = u8::from_str_radix(&this_line[3..4], 16).expect("we know this value should only contain hex valid chars");
+                                    state.consume(5, CharLit(v))
+                                }
+                                _ => {
+                                    eprintln!("{}:{}:{} - error - hex escape used with no following hex digits in char literal", state.file_name(), state.file_line(), state.column());
+                                    state.error(5)
+                                }
+                            }
+                        },
+                        _ => {
+                            eprintln!("{}:{}:{} - error - unexpected escape or multi-character char literal", state.file_name(), state.file_line(), state.column());
+                            state.error(5)
+                        }
+                    }
+                },
+                _ => {
+                    eprintln!("{}:{}:{} - error - multi-character char literal", state.file_name(), state.file_line(), state.column());
+                    state.error(5)
+                },
+            }
+        },
+        Some(5) => {
+            let mut chars = this_line.chars();
+            // either an octal escape \012 or a hex escape \xab or a multi-character char literal
+            match chars.nth(1).expect("Within valid &str") {
+                '\\' => {
+                    // escape
+                    match chars.next().expect("Within valid &str") {
+                        '0'..='3' => {
+                            match chars.next().expect("Within valid &str") {
+                                '0'..='7' => {
+                                    match chars.next().expect("Within valid &str") {
+                                        '0'..='7' => {
+                                            let v = u8::from_str_radix(&this_line[2..5], 8).expect("we know this value should only contain octal valid chars");
+                                            state.consume(6, CharLit(v))
+                                        },
+                                        _ => {
+                                            eprintln!("{}:{}:{} - error - unexpected escape or multi-character char literal", state.file_name(), state.file_line(), state.column());
+                                            state.error(6)
+                                        }
+                                    }
+                                },
+                                _ => {
+                                    eprintln!("{}:{}:{} - error - unexpected escape or multi-character char literal", state.file_name(), state.file_line(), state.column());
+                                    state.error(6)
+                                }
+                            }
+                        },
+                        'x' => {
+                            match chars.next().expect("Within valid &str") {
+                                '0'..='9' | 'a'..='f' | 'A'..='F' => {
+                                    match chars.next().expect("Within valid &str") {
+                                        '0'..='9' | 'a'..='f' | 'A'..='F' => {
+                                            let v = u8::from_str_radix(&this_line[3..5], 16).expect("we know this value should only contain hex valid chars");
+                                            state.consume(6, CharLit(v))
+                                        },
+                                        _ => {
+                                            eprintln!("{}:{}:{} - error - unexpected escape or multi-character char literal", state.file_name(), state.file_line(), state.column());
+                                            state.error(6)
+                                        }
+                                    }
+                                },
+                                _ => {
+                                    eprintln!("{}:{}:{} - error - hex escape used with no following hex digits in char literal", state.file_name(), state.file_line(), state.column());
+                                    state.error(6)
+                                }
+                            }
+                        },
+                        _ => {
+                            eprintln!("{}:{}:{} - error - unexpected escape or multi-character char literal", state.file_name(), state.file_line(), state.column());
+                            state.error(6)
+                        },
+                    }
+                },
+                _ => {
+                    eprintln!("{}:{}:{} - error - multi-character char literal", state.file_name(), state.file_line(), state.column());
+                    state.error(6)
+                },
+            };
+        },
+        Some(n) => {
+            eprintln!("{}:{}:{} - error - overlong char literal", state.file_name(), state.file_line(), state.column());
+            state.error(n + 1)
+        },
+    }
 }
 
 pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
@@ -259,7 +459,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             '.' => {
                 // one of
                 // decimal numeric float literal: .0 .1 etc.
-                // or . ... 
+                // or . ...
                 match state.peek_nth(1) {
                     Some(c) => match c {
                         '0'..='9' => {
@@ -291,7 +491,8 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                                     state.consume(1, Token::Dot);
                                 }
                             }
-                        }
+                        },
+                        _ => state.consume(1, Token::Dot),
                     },
                     None => {
                         // EOF but still emit
@@ -301,7 +502,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             },
             '\'' => {
                 // char literal
-                todo!()
+                lex_char_literal(&mut state);
             }
             '\"' => {
                 // string literal
@@ -333,7 +534,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                 }
             },
             ':' => {
-                // colon 
+                // colon
                 // one of : :>
                 // :> is a compat for ]
                 match state.peek_nth(1) {
@@ -398,7 +599,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             },
             '(' => {
                 // lparen
-                // always a ( 
+                // always a (
                 state.consume(1, Token::LParen)
             },
             '<' => {
@@ -449,12 +650,12 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             },
             '?' => {
                 // quest
-                // always a ? 
+                // always a ?
                 state.consume(1, Token::Question)
             },
             ']' => {
                 // rbrace
-                // always a ] 
+                // always a ]
                 state.consume(1, Token::RBrace)
             },
             ')' => {
@@ -469,7 +670,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             },
             ';' => {
                 // semi
-                // always a ; 
+                // always a ;
                 state.consume(1, Token::Semi)
             },
             '*' => {
@@ -482,7 +683,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             },
             '~' => {
                 // tilde
-                // always a ~ 
+                // always a ~
                 state.consume(1, Token::Tilde)
             },
             _ => {
