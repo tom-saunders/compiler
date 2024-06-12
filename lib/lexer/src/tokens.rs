@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq, Clone)]
-pub enum Token<'a> {
+pub enum Token {
     Amp,
     AmpAmp,
     AmpEql,
@@ -47,5 +47,5 @@ pub enum Token<'a> {
     Star,
     StarEql,
     Tilde,
-    Unknown(&'a str),
+    Unknown(String),
 }
