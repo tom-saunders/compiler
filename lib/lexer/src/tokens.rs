@@ -7,7 +7,7 @@ pub enum Token<'a> {
     BangEql,
     Caret,
     CaretEql,
-    CharLit(u8),
+    CharLit(i32),
     Colon,
     Comma,
     Dash,

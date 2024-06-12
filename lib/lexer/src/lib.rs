@@ -1,6 +1,7 @@
+mod char_literal;
 mod tokens;
 use core::hash;
-use std::rc::Rc;
+use std::{ops::Index, rc::Rc};
 
 use nom::{bytes::complete::{is_not, tag, take}, character::complete::{multispace1, one_of}, combinator::{consumed, not}, multi::many0, sequence::{delimited, pair, preceded, tuple}};
 pub use tokens::Token;
@@ -240,6 +241,7 @@ fn lex_char_literal<'a>(state: &'a mut LexState) {
     }
 
     // setting last to '\\' here cheeses the fact that the first char is a ' :)
+    // this doesn't technically handle '\\\' correctly - it should be an unterminated char literal
     let mut clem = CharLitEndMatcher{last: '\\', second_last: ' '};
     match this_line.find(|c| clem.do_match(c)) {
         None => {
@@ -708,6 +710,8 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
 
     #[test]
@@ -774,15 +778,129 @@ mod tests {
 
     #[test]
     fn test_char_literals_two_char_valid_escapes() {
-        let input = r#"'\0' '\1' '\2' '\3' '\4' '\5' '\6' '\7' '\'' '\"' '\?' '\\' '\a' '\b' '\f' '\n' '\r' '\t' '\v'"#;
+        let test_data = vec![
+            (r"'\0'", 0x00),
+            (r"'\1'", 0x01),
+            (r"'\2'", 0x02),
+            (r"'\3'", 0x03),
+            (r"'\4'", 0x04),
+            (r"'\5'", 0x05),
+            (r"'\6'", 0x06),
+            (r"'\7'", 0x07),
+
+            (r"'\''", b'\''),
+            (r#"'\"'"#, b'\"'),
+            (r"'\?'", b'?'),
+            (r"'\\'", b'\\'),
+
+            (r"'\a'", 0x07),
+            (r"'\b'", 0x08),
+            (r"'\f'", 0x0c),
+            (r"'\n'", b'\n'),
+            (r"'\r'", b'\r'),
+            (r"'\t'", b'\t'),
+            (r"'\v'", 0x0b),
+        ];
+
+        let mut input: String = String::new();
+        let mut exp_ts: Vec<Token> = vec![];
+        for (k,v) in test_data {
+            input += k;
+            input += " ";
+            exp_ts.push(Token::CharLit(v));
+        }
+
+        let lts = lex(&input)
+            .expect("expect CharLit tokens");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(exp_ts, ts);
+    }
+
+    #[test]
+    fn test_char_literals_two_char_invalid_escapes() {
+        let input = r"'\8' '\c' '\s'";
+
+        let lts = lex(input)
+            .expect("expect Unknown tokens");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(vec![Token::Unknown(r"'\8'"), Token::Unknown(r"'\c'"), Token::Unknown(r"'\s'")], ts);
+    }
+
+    #[test]
+    fn test_char_literals_two_char_hex_escape_with_no_value() {
+        let input = r"'\x'";
 
         let lts = lex(input)
             .expect("expect Unknown token");
 
         let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
 
-        let bs = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, b'\'', b'\"', b'?', b'\\', 0x07, 0x08, 0x0c, b'\n', b'\r', b'\t', 0x0b];
-        let exp_ts: Vec<Token> = bs.iter().map(|&u| CharLit(u)).collect();
+        assert_eq!(vec![Token::Unknown(r"'\x'")], ts);
+    }
+
+    #[test]
+    fn test_char_literals_three_char_valid_escapes() {
+        let test_data = vec![
+            (r"'\00'", 0x00),
+            (r"'\61'", b'1'),
+            (r"'\x0'", 0x00),
+            (r"'\xa'", 0x0a),
+            (r"'\xF'", 0x0f),
+        ];
+
+        let mut input: String = String::new();
+        let mut exp_ts: Vec<Token> = vec![];
+        for (k,v) in test_data {
+            input += k;
+            input += " ";
+            exp_ts.push(Token::CharLit(v));
+        }
+
+        let lts = lex(&input)
+            .expect("expect CharLit tokens");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(exp_ts, ts);
+    }
+
+    #[test]
+    fn test_char_literals_three_char_not_escape() {
+        let input = "'abc'";
+
+        let lts = lex(input).expect("expect Unknown token");
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(vec![Token::Unknown("'abc'")], ts);
+    }
+    #[test]
+    fn test_char_literals_three_char_invalid_escapes() {
+        let test_data = vec![
+            r"'\08'",
+            r"'\ab'",
+            r"'\xg'",
+            r"'\x '",
+            r"'\x]'",
+            r"'\\\'",
+        ];
+
+        let mut input: String = String::new();
+        let mut exp_ts: Vec<Token> = vec![];
+        for k in test_data {
+            input += k;
+            input += " ";
+            exp_ts.push(Token::Unknown(k));
+        }
+
+        let lts = lex(&input)
+            .expect("expect CharLit tokens");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
         assert_eq!(exp_ts, ts);
     }
 
