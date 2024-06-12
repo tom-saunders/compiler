@@ -62,16 +62,16 @@ impl<'a> LexState<'a> {
         // ^# 0 "some_input.c"$
         // see: https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
         //
-        let eol = input.find('\n').expect("We assume at least one complete line");
+        let eol = input.find('\n').or(Some(0)).unwrap();
         let linemarker = &input[..=eol];
 
-        let (file_line, file_name, _) = match process_linemarker(linemarker) {
-            Err(e) => panic!("Error reading first input line as a linemarker: {e}"),
-            Ok(o) => o,
+        let ((file_line, file_name, _), skip) = match process_linemarker(linemarker) {
+            Err(e) => ((0, "TOPLEVEL", (false, false, false, false)), 0),
+            Ok(o) => (o, linemarker.len() + 1),
         };
 
 
-        let input = &input[eol + 1..];
+        let input = &input[skip..];
         let column = 1usize;
         let located_tokens: Vec<LocatedToken> = vec![];
         let file_hist = vec![Location{line: file_line, column, file: file_name, input: linemarker}];
@@ -170,6 +170,10 @@ impl<'a> LexState<'a> {
         self.seen_error
     }
 
+    pub fn tokens(&self) -> Vec<LocatedToken<'a>> {
+        self.located_tokens.clone()
+    }
+
 }
 }
 
@@ -219,19 +223,24 @@ fn lex_char_literal<'a>(state: &'a mut LexState) {
 
     struct CharLitEndMatcher {
         last: char,
+        second_last: char,
     }
     impl CharLitEndMatcher {
         fn do_match(&mut self, c: char) -> bool {
-            if c == '\'' && self.last != '\\' {
-                return true
-            }
+            let m = match (c, self.last, self.second_last) {
+                ('\'', '\\', '\\') => true,
+                ('\'', '\\', _) => false,
+                ('\'', _, _) => true,
+                _ => false,
+            };
+            self.second_last = self.last;
             self.last = c;
-            false
+            m
         }
     }
 
     // setting last to '\\' here cheeses the fact that the first char is a ' :)
-    let mut clem = CharLitEndMatcher{last: '\\'};
+    let mut clem = CharLitEndMatcher{last: '\\', second_last: ' '};
     match this_line.find(|c| clem.do_match(c)) {
         None => {
             eprintln!("{}:{}:{} - error - unterminated char literal", state.file_name(), state.file_line(), state.column());
@@ -653,7 +662,7 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
                 // always a ?
                 state.consume(1, Token::Question)
             },
-            ']' => {
+            '}' => {
                 // rbrace
                 // always a ]
                 state.consume(1, Token::RBrace)
@@ -688,12 +697,13 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
             },
             _ => {
                 println!("unhandled: {}", c);
+                state.error(1)
             },
         }
     }
 
     println!("done");
-    todo!()
+    Ok(state.tokens())
 }
 
 #[cfg(test)]
@@ -713,4 +723,67 @@ mod tests {
 
         lex(input);
     }
+
+    #[test]
+    fn test_char_literals_unterminated() {
+        let input = "'";
+
+        let lts = lex(input)
+            .expect("expect Unknown token");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(vec![Token::Unknown("'")], ts);
+    }
+
+    #[test]
+    fn test_char_literals_empty() {
+        let input = "''";
+
+        let lts = lex(input)
+            .expect("expect Unknown token");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(vec![Token::Unknown("''")], ts);
+    }
+
+    #[test]
+    fn test_char_literals_one_char() {
+        let input = "'a'";
+
+        let lts = lex(input)
+            .expect("expect Unknown token");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(vec![Token::CharLit(b'a')], ts);
+    }
+
+    #[test]
+    fn test_char_literals_two_char_not_escape() {
+        let input = "'ab'";
+
+        let lts = lex(input)
+            .expect("expect Unknown token");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        assert_eq!(vec![Token::Unknown("'ab'")], ts);
+    }
+
+    #[test]
+    fn test_char_literals_two_char_valid_escapes() {
+        let input = r#"'\0' '\1' '\2' '\3' '\4' '\5' '\6' '\7' '\'' '\"' '\?' '\\' '\a' '\b' '\f' '\n' '\r' '\t' '\v'"#;
+
+        let lts = lex(input)
+            .expect("expect Unknown token");
+
+        let ts: Vec<Token> = lts.iter().map(|lt| lt.token.clone()).collect();
+
+        let bs = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, b'\'', b'\"', b'?', b'\\', 0x07, 0x08, 0x0c, b'\n', b'\r', b'\t', 0x0b];
+        let exp_ts: Vec<Token> = bs.iter().map(|&u| CharLit(u)).collect();
+        assert_eq!(exp_ts, ts);
+    }
+
 }
