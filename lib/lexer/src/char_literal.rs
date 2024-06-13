@@ -55,6 +55,11 @@ fn consume_char_literal_inner(state: &CharState) -> Result<(Token, usize), ()> {
         }
         match char_peek.next() {
             Some('\'') => {
+                if seen_err {
+                    eprintln!("{}:{}:{} - warn - seen error in processing, returning Unknown token not CharLit", state.file_name, state.file_line, state.column);
+                    return unknown!(state, consumed)
+                }
+
                 let len = output.len();
                 match len  {
                     0 => {
@@ -64,11 +69,6 @@ fn consume_char_literal_inner(state: &CharState) -> Result<(Token, usize), ()> {
                     1 => {
                         let val = output[0] as i32;
                         let lit = CharLit(val);
-
-                        if seen_err {
-                            eprintln!("{}:{}:{} - warn - seen error in processing, returning Unknown token not CharLit", state.file_name, state.file_line, state.column);
-                            return unknown!(state, consumed)
-                        }
                         return Ok((lit, consumed))
                     },
                     2 ..= 4 => {
@@ -83,11 +83,6 @@ fn consume_char_literal_inner(state: &CharState) -> Result<(Token, usize), ()> {
 
                         let lit = CharLit(val);
 
-
-                        if seen_err {
-                            eprintln!("{}:{}:{} - warn - seen error in processing, returning Unknown token not CharLit", state.file_name, state.file_line, state.column);
-                            return unknown!(state, consumed)
-                        }
                         return Ok((lit, consumed))
                     },
                     5 .. => {
@@ -101,16 +96,11 @@ fn consume_char_literal_inner(state: &CharState) -> Result<(Token, usize), ()> {
                         });
 
                         let lit = CharLit(val);
-
-                        if seen_err {
-                            eprintln!("{}:{}:{} - warn - seen error in processing, returning Unknown token not CharLit", state.file_name, state.file_line, state.column);
-                            return unknown!(state, consumed)
-                        }
                         return Ok((lit, consumed))
                     }
                 }
             },
-            Some('\\') => consume_char_literal_escape(state, &mut char_peek, &mut consumed, &mut output, &mut seen_err),
+            Some('\\') => consume_literal_escape(state, &mut char_peek, &mut consumed, &mut output, &mut seen_err),
             Some(c) => {
                 let mut bytes = [0; 4];
                 c.encode_utf8(&mut bytes);
@@ -127,7 +117,7 @@ fn consume_char_literal_inner(state: &CharState) -> Result<(Token, usize), ()> {
     }
 }
 
-fn consume_char_literal_escape(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
+fn consume_literal_escape(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
 
     macro_rules! emit_escape {
         ($o: literal) => {
@@ -140,8 +130,10 @@ fn consume_char_literal_escape(state: &CharState, char_peek: &mut Peekable<Chars
     }
 
     match char_peek.peek() {
-        Some('0' ..= '7') => consume_char_literal_escape_oct(state, char_peek, consumed, output, seen_err),
-        Some('x') => consume_char_literal_escape_hex(state, char_peek, consumed, output, seen_err),
+        Some('0' ..= '7') => consume_literal_escape_oct(state, char_peek, consumed, output, seen_err),
+        Some('x') => consume_literal_escape_hex(state, char_peek, consumed, output, seen_err),
+        Some('u') => consume_literal_escape_universal_short(state, char_peek, consumed, output, seen_err),
+        Some('U') => consume_literal_escape_universal_long(state, char_peek, consumed, output, seen_err),
         Some('\'') => emit_escape!('\''),
         Some('\\') => emit_escape!('\\'),
         Some('\"') => emit_escape!('\"'),
@@ -158,7 +150,7 @@ fn consume_char_literal_escape(state: &CharState, char_peek: &mut Peekable<Chars
     }
 }
 
-fn consume_char_literal_escape_oct(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, _seen_err: &mut bool) {
+fn consume_literal_escape_oct(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, _seen_err: &mut bool) {
     let mut num_octs = 0;
     let mut octs = String::new();
     while num_octs < 3 && match char_peek.peek() {
@@ -192,7 +184,7 @@ fn consume_char_literal_escape_oct(state: &CharState, char_peek: &mut Peekable<C
     }
 }
 
-fn consume_char_literal_escape_hex(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
+fn consume_literal_escape_hex(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
     match char_peek.next() {
         Some('x') => {
             *consumed += 1;
@@ -233,6 +225,127 @@ fn consume_char_literal_escape_hex(state: &CharState, char_peek: &mut Peekable<C
     }
 }
 
+fn consume_literal_escape_universal_short(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
+    match char_peek.next() {
+        Some('u') => {
+            *consumed += 1;
+            ()
+        },
+        _ => panic!("{}:{}:{} - FATAL - this isn't a short universal escape", state.file_name, state.file_line, state.column),
+    };
+
+    let mut num_hex: usize = 0;
+    let mut hexs = String::new();
+
+    while num_hex < 4 && match char_peek.peek() {
+        Some('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F') => true,
+        _ => false,
+    } {
+        let c = char_peek.next().expect("We just peeked to check");
+        hexs.push(c);
+        *consumed += 1;
+        num_hex += 1;
+    }
+
+    match num_hex {
+        4 => {
+            // good
+            let uval = u32::from_str_radix(&hexs, 16).expect("We've just scanned for four hex chars of input");
+
+            let meets_constraints = match uval {
+                0x24 | 0x40 | 0x60 => true,
+                0 ..= 0x9f => false,
+                0xd800 ..= 0xdfff => false,
+                _ => true,
+            };
+            if meets_constraints {
+                match char::from_u32(uval) {
+                    Some(c) => {
+                        eprintln!("c: [{}]", c);
+                        let mut bytes = [0; 4];
+                        c.encode_utf8(&mut bytes);
+                        for i in 0..c.len_utf8() {
+                            let v = bytes[i] as i8;
+                            output.push(v)
+                        }
+                    },
+                    None => {
+                        eprintln!("{}:{}:{} - error - universal character name \\u{} does not map to a char", state.file_name, state.file_line, state.column, hexs);
+                        *seen_err = true
+                    },
+                }
+            } else {
+                eprintln!("{}:{}:{} - error - invalid universal character name \\u{}", state.file_name, state.file_line, state.column, hexs);
+                *seen_err = true
+            }
+        }
+        n => {
+            eprintln!("{}:{}:{} - error - incomplete universal character name \\u{}", state.file_name, state.file_line, state.column, hexs);
+            *seen_err = true
+        },
+    }
+}
+
+fn consume_literal_escape_universal_long(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
+    match char_peek.next() {
+        Some('U') => {
+            *consumed += 1;
+            ()
+        },
+        _ => panic!("{}:{}:{} - FATAL - this isn't a long universal escape", state.file_name, state.file_line, state.column),
+    };
+
+    let mut num_hex: usize = 0;
+    let mut hexs = String::new();
+
+    while num_hex < 8 && match char_peek.peek() {
+        Some('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F') => true,
+        _ => false,
+    } {
+        let c = char_peek.next().expect("We just peeked to check");
+        hexs.push(c);
+        *consumed += 1;
+        num_hex += 1;
+    }
+
+    match num_hex {
+        8 => {
+            // good
+            let uval = u32::from_str_radix(&hexs, 16).expect("We've just scanned for eight hex chars of input");
+
+            let meets_constraints = match uval {
+                0x24 | 0x40 | 0x60 => true,
+                0 ..= 0x9f => false,
+                0xd800 ..= 0xdfff => false,
+                _ => true,
+            };
+            if meets_constraints {
+                match char::from_u32(uval) {
+                    Some(c) => {
+                        let mut bytes = [0; 4];
+                        c.encode_utf8(&mut bytes);
+                        for i in 0..c.len_utf8() {
+                            let v = bytes[i] as i8;
+                            output.push(v)
+                        }
+                    },
+                    None => {
+                        eprintln!("{}:{}:{} - error - universal character name \\U{} does not map to a char", state.file_name, state.file_line, state.column, hexs);
+                        *seen_err = true
+                    },
+                }
+            } else {
+                eprintln!("{}:{}:{} - error - invalid universal character name \\U{}", state.file_name, state.file_line, state.column, hexs);
+                *seen_err = true
+            }
+        }
+        n => {
+            eprintln!("{}:{}:{} - error - incomplete universal character name \\U{}", state.file_name, state.file_line, state.column, hexs);
+            *seen_err = true
+        },
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::Token;
@@ -242,7 +355,7 @@ mod test {
     use super::consume_char_literal_inner;
     use super::CharState;
 
-    macro_rules! state_and_unkn {
+    macro_rules! state_and_unk {
         ($input: literal) => {
             (CharState{input: $input, file_name: "", file_line: 1, column: 1}, Unknown($input.to_string()), $input.len())
         };
@@ -256,7 +369,7 @@ mod test {
 
     #[test]
     fn test_char_literals_unterminated() {
-        let (state, exp_t, exp_n) = state_and_unkn!("'");
+        let (state, exp_t, exp_n) = state_and_unk!("'");
 
         let (t, n) = consume_char_literal_inner(&state)
             .expect("expect Unknown token");
@@ -267,7 +380,7 @@ mod test {
 
     #[test]
     fn test_char_literals_empty() {
-        let (state, exp_t, exp_n) = state_and_unkn!("''");
+        let (state, exp_t, exp_n) = state_and_unk!("''");
 
         let (t, n) = consume_char_literal_inner(&state)
             .expect("expect Unknown token");
@@ -357,7 +470,7 @@ mod test {
     #[test]
     fn test_char_literals_two_char_hex_escape_with_no_value() {
         let test_data = vec![
-            state_and_unkn!(r"'\xM'"),
+            state_and_unk!(r"'\xM'"),
         ];
 
         let mut exp_t_n: Vec<(Token, usize)> = vec![];
@@ -541,5 +654,127 @@ mod test {
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n)
+    }
+
+    #[test]
+    fn test_char_literals_universal_short_valid() {
+        let test_data = vec![
+            state_and_unk!(r"'\u0000'"),
+            state_and_unk!(r"'\u0023'"),
+            state_and_exp!(r"'\u0024'", '$'),
+            state_and_unk!(r"'\u0025'"),
+            state_and_unk!(r"'\u003f'"),
+            state_and_exp!(r"'\u0040'", '@'),
+            state_and_unk!(r"'\u0041'"),
+            state_and_unk!(r"'\u005f'"),
+            state_and_exp!(r"'\u0060'", '`'),
+            state_and_unk!(r"'\u0061'"),
+            state_and_unk!(r"'\u009f'"),
+            state_and_exp!(r"'\u00a0'", 0xc2a0),
+            state_and_exp!(r"'\uabcd'", 0xeaaf8d),
+            state_and_exp!(r"'\uABCD'", 0xeaaf8d),
+            state_and_exp!(r"'\ud7ff'", 0xed9fbf),
+            state_and_unk!(r"'\ud800'"),
+            state_and_unk!(r"'\udfff'"),
+            state_and_exp!(r"'\ue000'", 0xee8080),
+            state_and_exp!(r"'\uef00'", 0xeebc80),
+            state_and_exp!(r"'\uEF00'", 0xeebc80),
+            state_and_exp!(r"'\uffff'", 0xefbfbf),
+        ];
+
+        let mut exp_t_n: Vec<(Token, usize)> = vec![];
+        let mut act_t_n: Vec<(Token, usize)> = vec![];
+
+        for (s, t, n) in test_data {
+            exp_t_n.push((t, n));
+            act_t_n.push(consume_char_literal_inner(&s).expect("All of the inputs should lex"));
+        }
+
+        assert_eq!(exp_t_n, act_t_n);
+    }
+
+    #[test]
+    fn test_char_literals_universal_short_invalid() {
+        let test_data = vec![
+            state_and_unk!(r"'\u'"),
+            // this would be invalid even if it were accepted as a shorter input
+            state_and_unk!(r"'\u0'"),
+            state_and_unk!(r"'\ua0'"),
+            state_and_unk!(r"'\u0a0'"),
+            state_and_exp!(r"'\u00a0'", 0xc2a0),
+        ];
+
+        let mut exp_t_n: Vec<(Token, usize)> = vec![];
+        let mut act_t_n: Vec<(Token, usize)> = vec![];
+
+        for (s, t, n) in test_data {
+            exp_t_n.push((t, n));
+            act_t_n.push(consume_char_literal_inner(&s).expect("All of the inputs should lex"));
+        }
+
+        assert_eq!(exp_t_n, act_t_n);
+    }
+
+    #[test]
+    fn test_char_literals_universal_long_valid() {
+        let test_data = vec![
+            state_and_unk!(r"'\U00000000'"),
+            state_and_unk!(r"'\U00000023'"),
+            state_and_exp!(r"'\U00000024'", '$'),
+            state_and_unk!(r"'\U00000025'"),
+            state_and_unk!(r"'\U0000003f'"),
+            state_and_exp!(r"'\U00000040'", '@'),
+            state_and_unk!(r"'\U00000041'"),
+            state_and_unk!(r"'\U0000005f'"),
+            state_and_exp!(r"'\U00000060'", '`'),
+            state_and_unk!(r"'\U00000061'"),
+            state_and_unk!(r"'\U0000009f'"),
+            state_and_exp!(r"'\U000000a0'", 0xc2a0),
+            state_and_exp!(r"'\U0000abcd'", 0xeaaf8d),
+            state_and_exp!(r"'\U0000ABCD'", 0xeaaf8d),
+            state_and_exp!(r"'\U0000d7ff'", 0xed9fbf),
+            state_and_unk!(r"'\U0000d800'"),
+            state_and_unk!(r"'\U0000dfff'"),
+            state_and_exp!(r"'\U0000ef00'", 0xeebc80),
+            state_and_exp!(r"'\U0000EF00'", 0xeebc80),
+            state_and_exp!(r"'\U0000e000'", 0xee8080),
+            state_and_exp!(r"'\U0010FFFF'", 0xf48fbfbfu32),
+            state_and_unk!(r"'\U00110000'"),
+        ];
+
+        let mut exp_t_n: Vec<(Token, usize)> = vec![];
+        let mut act_t_n: Vec<(Token, usize)> = vec![];
+
+        for (s, t, n) in test_data {
+            exp_t_n.push((t, n));
+            act_t_n.push(consume_char_literal_inner(&s).expect("All of the inputs should lex"));
+        }
+
+        assert_eq!(exp_t_n, act_t_n);
+    }
+
+    #[test]
+    fn test_char_literals_universal_long_invalid() {
+        let test_data = vec![
+            state_and_unk!(r"'\U'"),
+            // this would be invalid even if it were accepted as a shorter input
+            state_and_unk!(r"'\U0'"),
+            state_and_unk!(r"'\Ua0'"),
+            state_and_unk!(r"'\U00a0'"),
+            state_and_unk!(r"'\U000a0'"),
+            state_and_unk!(r"'\U0000a0'"),
+            state_and_unk!(r"'\U00000a0'"),
+            state_and_exp!(r"'\U000000a0'", 0xc2a0),
+        ];
+
+        let mut exp_t_n: Vec<(Token, usize)> = vec![];
+        let mut act_t_n: Vec<(Token, usize)> = vec![];
+
+        for (s, t, n) in test_data {
+            exp_t_n.push((t, n));
+            act_t_n.push(consume_char_literal_inner(&s).expect("All of the inputs should lex"));
+        }
+
+        assert_eq!(exp_t_n, act_t_n);
     }
 }
