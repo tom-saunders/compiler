@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-use crate::LexState;
+use crate::LexStruct;
 use crate::Token;
 use crate::Token::CharLit;
 use crate::Token::Unknown;
@@ -13,7 +13,7 @@ struct CharState<'state>{
     column: usize,
 }
 
-pub fn consume_char_literal<'state> (lstate: &'state LexState) -> Result<(Token, usize), ()> {
+pub fn consume_char_literal<'state> (lstate: &'state LexStruct) -> Result<(Token, usize), ()> {
 
     let this_line = match lstate.input().find('\n') {
         Some(n) => &lstate.input()[..n],
@@ -21,6 +21,8 @@ pub fn consume_char_literal<'state> (lstate: &'state LexState) -> Result<(Token,
     };
 
     let state = CharState{input: &this_line, file_name: lstate.file_name(), file_line: lstate.file_line(), column: lstate.column()};
+
+    let s: String = String::new();
 
     consume_char_literal_inner(&state)
 }
@@ -261,7 +263,6 @@ fn consume_literal_escape_universal_short(state: &CharState, char_peek: &mut Pee
             if meets_constraints {
                 match char::from_u32(uval) {
                     Some(c) => {
-                        eprintln!("c: [{}]", c);
                         let mut bytes = [0; 4];
                         c.encode_utf8(&mut bytes);
                         for i in 0..c.len_utf8() {
