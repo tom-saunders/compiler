@@ -1,360 +1,111 @@
-use std::iter::Peekable;
-use std::str::Chars;
-
-use crate::LexStruct;
+use crate::char_escape::CharEsc;
+use crate::text::TextState;
+use crate::LocationState;
 use crate::Token;
-use crate::Token::CharLit;
-use crate::Token::Unknown;
 
-struct CharState<'state>{
-    input: &'state str,
-    file_name: &'state str,
-    file_line: u32,
-    column: usize,
+pub trait CharLiteral<'input, C> {
+    fn consume_char_literal(&self) -> Token;
 }
 
-pub fn consume_char_literal<'state> (lstate: &'state LexStruct) -> Result<(Token, usize), ()> {
-
-    let this_line = match lstate.input().find('\n') {
-        Some(n) => &lstate.input()[..n],
-        None => &lstate.input(),
-    };
-
-    let state = CharState{input: &this_line, file_name: lstate.file_name(), file_line: lstate.file_line(), column: lstate.column()};
-
-    let s: String = String::new();
-
-    consume_char_literal_inner(&state)
+pub fn char_literal_impl<'input, C>(
+    location: &'input dyn LocationState<'input>,
+    text: &'input dyn TextState<'input, Ch = C>,
+    char_escape: &'input dyn CharEsc<'input>,
+) -> Box<dyn CharLiteral<'input, C> + 'input> {
+    Box::new(CharLiteralImpl::new(location, text, char_escape))
 }
 
-macro_rules! unknown {
-    ($st: expr, $cons: expr) => {
-        Ok((Unknown($st.input[..$cons].to_string()), $cons))
-    };
+struct CharLiteralImpl<'input, C> {
+    location: &'input dyn LocationState<'input>,
+    text: &'input dyn TextState<'input, Ch = C>,
+    char_escape: &'input dyn CharEsc<'input>,
 }
 
-fn consume_char_literal_inner(state: &CharState) -> Result<(Token, usize), ()> {
-    let mut consumed: usize = 0;
-    let mut output: Vec<i8> = vec![];
-    let mut seen_err: bool = false;
-    let mut char_peek = state.input.chars().peekable();
-
-
-    match char_peek.peek() {
-        Some('\'') => {
-            char_peek.next();
-            consumed += 1
-        }
-        _ => {
-            eprintln!("{}:{}:{} - warn - this isn't a char literal", state.file_name, state.file_line, state.column);
-            return Err(())
-        }
+impl<'input, C: 'input> CharLiteralImpl<'input, C> {
+    fn new(
+        location: &'input dyn LocationState<'input>,
+        text: &'input dyn TextState<'input, Ch = C>,
+        char_escape: &'input dyn CharEsc<'input>,
+    ) -> CharLiteralImpl<'input, C> {
+        CharLiteralImpl{location, text, char_escape}
     }
-    loop {
-        match char_peek.peek() {
-            Some(_) => consumed += 1,
-            None => ()
-        }
-        match char_peek.next() {
+}
+
+impl<'input, C> CharLiteral<'input, C> for CharLiteralImpl<'input, C> {
+    fn consume_char_literal(&self) -> Token {
+        match self.text.peek() {
             Some('\'') => {
-                if seen_err {
-                    eprintln!("{}:{}:{} - warn - seen error in processing, returning Unknown token not CharLit", state.file_name, state.file_line, state.column);
-                    return unknown!(state, consumed)
-                }
-
-                let len = output.len();
-                match len  {
-                    0 => {
-                        eprintln!("{}:{}:{} - error - empty char literal", state.file_name, state.file_line, state.column);
-                        return unknown!(state, consumed)
-                    },
-                    1 => {
-                        let val = output[0] as i32;
-                        let lit = CharLit(val);
-                        return Ok((lit, consumed))
-                    },
-                    2 ..= 4 => {
-                        eprintln!("{}:{}:{} - warn - multi-character char literal", state.file_name, state.file_line, state.column);
-                        let val = output.iter().fold(0, |acc: i32, &u| {
-                            let v: i32 = u as i32;
-                            let (shifted_acc, _) = (acc as u32).overflowing_shl(8);
-                            let masked_shift = shifted_acc & 0xffffff00;
-                            let masked_v = v & 0x000000ff;
-                            (masked_shift | masked_v as u32) as i32
-                        });
-
-                        let lit = CharLit(val);
-
-                        return Ok((lit, consumed))
-                    },
-                    5 .. => {
-                        eprintln!("{}:{}:{} - warn - multi-character with {} characters exceeds int size of four bytes", state.file_name, state.file_line, state.column, len);
-                        let val = output.iter().fold(0, |acc: i32, &u| {
-                            let v: i32 = u.try_into().expect("Single i8 should always convert to an i32");
-                            let (shifted_acc, _) = (acc as u32).overflowing_shl(8);
-                            let masked_shift = shifted_acc & 0xffffff00;
-                            let masked_v = v & 0x000000ff;
-                            (masked_shift | (masked_v as u32)) as i32
-                        });
-
-                        let lit = CharLit(val);
-                        return Ok((lit, consumed))
-                    }
-                }
-            },
-            Some('\\') => consume_literal_escape(state, &mut char_peek, &mut consumed, &mut output, &mut seen_err),
-            Some(c) => {
-                let mut bytes = [0; 4];
-                c.encode_utf8(&mut bytes);
-                for i in 0..c.len_utf8() {
-                    let v = bytes[i] as i8;
-                    output.push(v)
-                }
-            },
-            None => {
-                eprintln!("{}:{}:{} - error - unterminated char literal", state.file_name, state.file_line, state.column);
-                return unknown!(state, consumed)
-            },
-        }
-    }
-}
-
-fn consume_literal_escape(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
-
-    macro_rules! emit_escape {
-        ($o: literal) => {
-            {
-                output.push($o as i8);
-                char_peek.next();
-                *consumed += 1;
+                self.text.next();
             }
-        };
-    }
+            _ => panic!("{}:{}:{} - FATAL - this isn't a char literal", self.location.f(), self.location.l(), self.location.c()),
+        }
 
-    match char_peek.peek() {
-        Some('0' ..= '7') => consume_literal_escape_oct(state, char_peek, consumed, output, seen_err),
-        Some('x') => consume_literal_escape_hex(state, char_peek, consumed, output, seen_err),
-        Some('u') => consume_literal_escape_universal_short(state, char_peek, consumed, output, seen_err),
-        Some('U') => consume_literal_escape_universal_long(state, char_peek, consumed, output, seen_err),
-        Some('\'') => emit_escape!('\''),
-        Some('\\') => emit_escape!('\\'),
-        Some('\"') => emit_escape!('\"'),
-        Some('?') => emit_escape!('?'),
-        Some('a') => emit_escape!(0x07),
-        Some('b') => emit_escape!(0x08),
-        Some('f') => emit_escape!(0x0c),
-        Some('n') => emit_escape!('\n'),
-        Some('r') => emit_escape!('\r'),
-        Some('t') => emit_escape!('\t'),
-        Some('v') => emit_escape!(0x0b),
-        None => (),
-        _ => eprintln!("{}:{}:{} - warn - unknown escape in char literal", state.file_name, state.file_line, state.column),
-    }
-}
-
-fn consume_literal_escape_oct(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, _seen_err: &mut bool) {
-    let mut num_octs = 0;
-    let mut octs = String::new();
-    while num_octs < 3 && match char_peek.peek() {
-        Some('0' ..= '7') => true,
-        _ => false,
-    } {
-        let c = char_peek.next().expect("We just peeked to check");
-        octs.push(c);
-        *consumed += 1;
-        num_octs += 1;
-    }
-    assert!(num_octs != 0, "{}:{}:{} - FATAL - we found no oct chars?", state.file_name, state.file_line, state.column);
-
-    match i8::from_str_radix(&octs, 8) {
-        Ok(i) => output.push(i),
-        Err(e) => {
-            eprintln!("{}:{}:{} - warn - octal escape sequence out of range: {e}", state.file_name, state.file_line, state.column);
-            unsafe {
-                // we reduce the leading octal char by 4 which should bring the value into the i8 range
-                let oct_bytes = octs.as_bytes_mut();
-                oct_bytes[0] -= 4;
-            };
-            match u8::from_str_radix(&octs, 8) {
-                Ok(uval) => {
-                    let val = uval as i8;
-                    output.push(val)
+        loop {
+            match self.text.peek() {
+                Some('\n') | None => {
+                    eprintln!("{}:{}:{} - error - unterminated char literal", self.location.f(), self.location.l(), self.location.c());
+                    break self.text.emit_unknown()
                 },
-                Err(e) => panic!("{}:{}:{} - FATAL - We messed up and couldn't parse the new String oct either: {e}", state.file_name, state.file_line, state.column),
+                _ => (),
             }
-        },
-    }
-}
-
-fn consume_literal_escape_hex(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
-    match char_peek.next() {
-        Some('x') => {
-            *consumed += 1;
-            ()
-        },
-        _ => panic!("{}:{}:{} - FATAL - this isn't a hex escape", state.file_name, state.file_line, state.column),
-    };
-
-    let mut num_hex: usize = 0;
-    let mut hexs = String::new();
-
-    while match char_peek.peek() {
-        Some('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F') => true,
-        _ => false,
-    } {
-        let c = char_peek.next().expect("We just peeked to check");
-        hexs.push(c);
-        *consumed += 1;
-        num_hex += 1;
-    }
-
-    match num_hex {
-        0 => {
-            eprintln!("{}:{}:{} - error - hex escape with no following hex digits", state.file_name, state.file_line, state.column);
-            *seen_err = true
-        },
-        1 | 2 => {
-            let uval = u8::from_str_radix(&hexs, 16).expect("We only matched 1 or 2 hex chars, this should parse to a u8");
-            let val = uval as i8;
-            output.push(val)
-        }
-        n => {
-            eprintln!("{}:{}:{} - warn - hex escape sequence out of range", state.file_name, state.file_line, state.column);
-            let uval = u8::from_str_radix(&hexs[n-2..] ,16).expect("We're only looking at 2 hex chars, this should parse to a u8");
-            let val = uval as i8;
-            output.push(val)
-        }
-    }
-}
-
-fn consume_literal_escape_universal_short(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
-    match char_peek.next() {
-        Some('u') => {
-            *consumed += 1;
-            ()
-        },
-        _ => panic!("{}:{}:{} - FATAL - this isn't a short universal escape", state.file_name, state.file_line, state.column),
-    };
-
-    let mut num_hex: usize = 0;
-    let mut hexs = String::new();
-
-    while num_hex < 4 && match char_peek.peek() {
-        Some('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F') => true,
-        _ => false,
-    } {
-        let c = char_peek.next().expect("We just peeked to check");
-        hexs.push(c);
-        *consumed += 1;
-        num_hex += 1;
-    }
-
-    match num_hex {
-        4 => {
-            // good
-            let uval = u32::from_str_radix(&hexs, 16).expect("We've just scanned for four hex chars of input");
-
-            let meets_constraints = match uval {
-                0x24 | 0x40 | 0x60 => true,
-                0 ..= 0x9f => false,
-                0xd800 ..= 0xdfff => false,
-                _ => true,
-            };
-            if meets_constraints {
-                match char::from_u32(uval) {
-                    Some(c) => {
-                        let mut bytes = [0; 4];
-                        c.encode_utf8(&mut bytes);
-                        for i in 0..c.len_utf8() {
-                            let v = bytes[i] as i8;
-                            output.push(v)
-                        }
-                    },
-                    None => {
-                        eprintln!("{}:{}:{} - error - universal character name \\u{} does not map to a char", state.file_name, state.file_line, state.column, hexs);
-                        *seen_err = true
-                    },
-                }
-            } else {
-                eprintln!("{}:{}:{} - error - invalid universal character name \\u{}", state.file_name, state.file_line, state.column, hexs);
-                *seen_err = true
+            match self.text.next() {
+                Some('\n') | None => panic!("{}:{}:{} - FATAL - We should have handled this in the match block above", self.location.f(), self.location.l(), self.location.c()),
+                Some('\'') => {
+                    if self.text.seen_error() {
+                        eprintln!("{}:{}:{} - warn - seen error in processing, returning Unknown token not CharLit", self.location.f(), self.location.l(), self.location.c());
+                        break self.text.emit_unknown()
+                    }
+                    break self.text.emit_char_lit(self.location)
+                },
+                Some('\\') => self.char_escape.consume_char_escape(),
+                Some(c) => self.text.push_char(c),
             }
         }
-        n => {
-            eprintln!("{}:{}:{} - error - incomplete universal character name \\u{}", state.file_name, state.file_line, state.column, hexs);
-            *seen_err = true
-        },
-    }
-}
-
-fn consume_literal_escape_universal_long(state: &CharState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut Vec<i8>, seen_err: &mut bool) {
-    match char_peek.next() {
-        Some('U') => {
-            *consumed += 1;
-            ()
-        },
-        _ => panic!("{}:{}:{} - FATAL - this isn't a long universal escape", state.file_name, state.file_line, state.column),
-    };
-
-    let mut num_hex: usize = 0;
-    let mut hexs = String::new();
-
-    while num_hex < 8 && match char_peek.peek() {
-        Some('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F') => true,
-        _ => false,
-    } {
-        let c = char_peek.next().expect("We just peeked to check");
-        hexs.push(c);
-        *consumed += 1;
-        num_hex += 1;
-    }
-
-    match num_hex {
-        8 => {
-            // good
-            let uval = u32::from_str_radix(&hexs, 16).expect("We've just scanned for eight hex chars of input");
-
-            let meets_constraints = match uval {
-                0x24 | 0x40 | 0x60 => true,
-                0 ..= 0x9f => false,
-                0xd800 ..= 0xdfff => false,
-                _ => true,
-            };
-            if meets_constraints {
-                match char::from_u32(uval) {
-                    Some(c) => {
-                        let mut bytes = [0; 4];
-                        c.encode_utf8(&mut bytes);
-                        for i in 0..c.len_utf8() {
-                            let v = bytes[i] as i8;
-                            output.push(v)
-                        }
-                    },
-                    None => {
-                        eprintln!("{}:{}:{} - error - universal character name \\U{} does not map to a char", state.file_name, state.file_line, state.column, hexs);
-                        *seen_err = true
-                    },
-                }
-            } else {
-                eprintln!("{}:{}:{} - error - invalid universal character name \\U{}", state.file_name, state.file_line, state.column, hexs);
-                *seen_err = true
-            }
-        }
-        n => {
-            eprintln!("{}:{}:{} - error - incomplete universal character name \\U{}", state.file_name, state.file_line, state.column, hexs);
-            *seen_err = true
-        },
     }
 }
 
 #[cfg(test)]
 mod test {
+    use crate::hex_escape::hex_esc_impl;
+    use crate::text::text_state_impl_i8;
     use crate::Token;
     use crate::Token::CharLit;
-    use crate::Token::Unknown;
+    use crate::Token::CharLit_u;
+    use crate::Token::CharLit_U;
+    use crate::LocationState;
+    use crate::text::{self, TextState};
+    use crate::char_escape::{self, CharEsc};
+    use crate::hex_escape::{self, HexEsc};
+    use crate::oct_escape::{self, OctEsc};
+    use crate::universal_char::{self, UnivEsc};
 
-    use super::consume_char_literal_inner;
-    use super::CharState;
+    struct TestLocation;
+    impl LocationState<'static> for TestLocation {
+        fn f(&self) -> &'static str {
+            "TEST"
+        }
+
+        fn l(&self) -> u32 {
+            1
+        }
+
+        fn c(&self) -> usize {
+            1
+        }
+    }
+
+    #[test]
+    fn _test_char_literals_empty() {
+        let input = "''";
+        let expected = Token::Unknown(input.to_string());
+
+        let location = TestLocation;
+        let text = text_state_impl_i8(input.chars().peekable());
+        let hex_escape = hex_esc_impl(&location, text.as_ref());
+        // location: &'input dyn LocationState<'input>,
+        // text: &'input dyn TextState<'input, Ch = C>,
+        // char_escape: &'input dyn CharEsc<'input>,
+    }
 
     macro_rules! state_and_unk {
         ($input: literal) => {

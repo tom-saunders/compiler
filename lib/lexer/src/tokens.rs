@@ -8,6 +8,12 @@ pub enum Token {
     Caret,
     CaretEql,
     CharLit(i32),
+    #[allow(non_camel_case_types)]
+    CharLit_L(i32),
+    #[allow(non_camel_case_types)]
+    CharLit_u(i32),
+    #[allow(non_camel_case_types)]
+    CharLit_U(i32),
     Colon,
     Comma,
     Dash,
@@ -100,6 +106,15 @@ pub enum Token {
     Semi,
     Star,
     StarEql,
+    String(Vec<i8>),
+    #[allow(non_camel_case_types)]
+    String_L(Vec<i32>),
+    #[allow(non_camel_case_types)]
+    String_u(Vec<i16>),
+    #[allow(non_camel_case_types)]
+    String_u8(Vec<i8>),
+    #[allow(non_camel_case_types)]
+    String_U(Vec<i32>),
     Tilde,
     Unknown(String),
 }

@@ -4,13 +4,20 @@ pub trait HexEsc<'input> {
     fn consume_hex_escape(&self);
 }
 
-pub struct HexEscImpl<'input, C> {
+pub fn hex_esc_impl<'input, C> (
+    location: &'input dyn LocationState<'input>,
+    text: &'input dyn TextState<'input, Ch = C>,
+) -> Box<dyn HexEsc<'input> + 'input> {
+    Box::new(HexEscImpl::new(location, text))
+}
+
+struct HexEscImpl<'input, C> {
     location: &'input dyn LocationState<'input>,
     text: &'input dyn TextState<'input, Ch = C>,
 }
 
 impl<'input, C: 'input> HexEscImpl<'input, C> {
-    pub fn new(
+    fn new(
             location: &'input dyn LocationState<'input>,
             text: &'input dyn TextState<'input, Ch = C>,
     ) -> HexEscImpl<'input, C> {

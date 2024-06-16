@@ -1,13 +1,15 @@
 use std::{cell::RefCell, iter::Peekable, str::Chars};
 
-use crate::LocationState;
+use crate::{LocationState, Token};
 
 pub trait TextState<'input> {
     type Ch;
     fn peek(&self) -> Option<char>;
     fn next(&self) -> Option<char>;
 
-    fn consumed(&self) -> usize;
+    fn emit_unknown(&self) -> Token;
+    fn emit_char_lit(&self, location: &'input dyn LocationState<'input>) -> Token;
+    fn emit_string_lit(&self) -> Token;
 
     fn push_char(&self, c: char);
     fn push_c(&self, c: Self::Ch);
@@ -23,32 +25,50 @@ pub trait TextState<'input> {
     fn seen_error(&self) -> bool;
 }
 
-pub struct I8Text<'input> {
+pub fn text_state_impl_i8<'input>(
+    iter: Peekable<Chars<'input>>,
+) -> Box<dyn TextState<'input, Ch = i8> + 'input> {
+    Box::new(I8Text::new(iter))
+}
+
+pub fn text_state_impl_i16<'input>(
+    iter: Peekable<Chars<'input>>,
+) -> Box<dyn TextState<'input, Ch = i16> + 'input> {
+    Box::new(I16Text::new(iter))
+}
+
+pub fn text_state_impl_i32<'input>(
+    iter: Peekable<Chars<'input>>,
+) -> Box<dyn TextState<'input, Ch = i32> + 'input> {
+    Box::new(I32Text::new(iter))
+}
+
+struct I8Text<'input> {
     iter: RefCell<Peekable<Chars<'input>>>,
-    consumed: RefCell<usize>,
+    consumed: RefCell<String>,
     seen_error: RefCell<bool>,
     output: RefCell<Vec<i8>>,
 }
 
-pub struct I16Text<'input> {
+struct I16Text<'input> {
     iter: RefCell<Peekable<Chars<'input>>>,
-    consumed: RefCell<usize>,
+    consumed: RefCell<String>,
     seen_error: RefCell<bool>,
     output: RefCell<Vec<i16>>,
 }
 
-pub struct I32Text<'input> {
+struct I32Text<'input> {
     iter: RefCell<Peekable<Chars<'input>>>,
-    consumed: RefCell<usize>,
+    consumed: RefCell<String>,
     seen_error: RefCell<bool>,
     output: RefCell<Vec<i32>>,
 }
 
 impl<'input> I8Text<'input> {
-    pub fn new(iter: Peekable<Chars<'input>>) -> I8Text<'input> {
+    fn new(iter: Peekable<Chars<'input>>) -> I8Text<'input> {
         I8Text{
             iter: RefCell::new(iter),
-            consumed: RefCell::new(0),
+            consumed: RefCell::new(String::new()),
             seen_error: RefCell::new(false),
             output: RefCell::new(vec![]),
         }
@@ -56,10 +76,10 @@ impl<'input> I8Text<'input> {
 }
 
 impl<'input> I16Text<'input> {
-    pub fn new(iter: Peekable<Chars<'input>>) -> I16Text<'input> {
+    fn new(iter: Peekable<Chars<'input>>) -> I16Text<'input> {
         I16Text{
             iter: RefCell::new(iter),
-            consumed: RefCell::new(0),
+            consumed: RefCell::new(String::new()),
             seen_error: RefCell::new(false),
             output: RefCell::new(vec![]),
         }
@@ -67,10 +87,10 @@ impl<'input> I16Text<'input> {
 }
 
 impl<'input> I32Text<'input> {
-    pub fn new(iter: Peekable<Chars<'input>>) -> I32Text<'input> {
+    fn new(iter: Peekable<Chars<'input>>) -> I32Text<'input> {
         I32Text{
             iter: RefCell::new(iter),
-            consumed: RefCell::new(0),
+            consumed: RefCell::new(String::new()),
             seen_error: RefCell::new(false),
             output: RefCell::new(vec![]),
         }
@@ -90,14 +110,40 @@ impl<'input> TextState<'input> for I8Text<'input> {
     fn next(&self) -> Option<char> {
         let r = self.iter.borrow_mut().next();
         match r {
-            Some(_) => *self.consumed.borrow_mut() += 1,
+            Some(c) => self.consumed.borrow_mut().push(c),
             _ => (),
         }
         r
     }
 
-    fn consumed(&self) -> usize {
-        *self.consumed.borrow()
+    fn emit_unknown(&self) -> Token {
+        Token::Unknown(self.consumed.borrow().clone())
+    }
+
+    fn emit_char_lit(&self, location: &'input dyn LocationState<'input>) -> Token {
+        match self.output.borrow().len() {
+            0 => {
+                eprintln!("{}:{}:{} - error - empty char literal", location.f(), location.l(), location.c());
+                self.emit_unknown()
+            },
+            1 => {
+                Token::CharLit(self.output.borrow()[0] as i32)
+            },
+            _ => {
+                eprintln!("{}:{}:{} - warn - multi-char char literal", location.f(), location.l(), location.c());
+                let mut u: u32 = 0;
+                for o in self.output.borrow().iter() {
+                    (u, _) = u.overflowing_shl(8);
+                    u |= 0x000000ff & (*o as u32);
+                }
+                let v = u as i32;
+                Token::CharLit(v)
+            }
+        }
+    }
+
+    fn emit_string_lit(&self) -> Token {
+        Token::String(self.output.borrow().clone())
     }
 
     fn push_char(&self, c: char) {
@@ -186,14 +232,40 @@ impl<'input> TextState<'input> for I16Text<'input> {
     fn next(&self) -> Option<char> {
         let r = self.iter.borrow_mut().next();
         match r {
-            Some(_) => *self.consumed.borrow_mut() += 1,
+            Some(c) => self.consumed.borrow_mut().push(c),
             _ => (),
         }
         r
     }
 
-    fn consumed(&self) -> usize {
-        *self.consumed.borrow()
+    fn emit_unknown(&self) -> Token {
+        Token::Unknown(self.consumed.borrow().clone())
+    }
+
+    fn emit_char_lit(&self, location: &'input dyn LocationState<'input>) -> Token {
+        match self.output.borrow().len() {
+            0 => {
+                eprintln!("{}:{}:{} - error - empty char literal", location.f(), location.l(), location.c());
+                self.emit_unknown()
+            },
+            1 => {
+                Token::CharLit_u(self.output.borrow()[0] as i32)
+            },
+            _ => {
+                eprintln!("{}:{}:{} - warn - multi-char char literal", location.f(), location.l(), location.c());
+                let mut u: u32 = 0;
+                for o in self.output.borrow().iter() {
+                    (u, _) = u.overflowing_shl(16);
+                    u |= 0x0000ffff & (*o as u32);
+                }
+                let v = u as i32;
+                Token::CharLit_u(v)
+            }
+        }
+    }
+
+    fn emit_string_lit(&self) -> Token {
+        Token::String_u(self.output.borrow().clone())
     }
 
     fn push_char(&self, c: char) {
@@ -262,14 +334,35 @@ impl<'input> TextState<'input> for I32Text<'input> {
     fn next(&self) -> Option<char> {
         let r = self.iter.borrow_mut().next();
         match r {
-            Some(_) => *self.consumed.borrow_mut() += 1,
+            Some(c) => self.consumed.borrow_mut().push(c),
             _ => (),
         }
         r
     }
 
-    fn consumed(&self) -> usize {
-        *self.consumed.borrow()
+    fn emit_unknown(&self) -> Token {
+        Token::Unknown(self.consumed.borrow().clone())
+    }
+
+    fn emit_char_lit(&self, location: &'input dyn LocationState<'input>) -> Token {
+        match self.output.borrow().len() {
+            0 => {
+                eprintln!("{}:{}:{} - error - empty char literal", location.f(), location.l(), location.c());
+                self.emit_unknown()
+            },
+            1 => {
+                Token::CharLit_U(self.output.borrow()[0])
+            },
+            _ => {
+                eprintln!("{}:{}:{} - warn - multi-char char literal", location.f(), location.l(), location.c());
+                let v = *self.output.borrow().last().expect("We just checked there is at least one value in the vector");
+                Token::CharLit_U(v)
+            }
+        }
+    }
+
+    fn emit_string_lit(&self) -> Token {
+        Token::String_U(self.output.borrow().clone())
     }
 
     fn push_char(&self, c: char) {

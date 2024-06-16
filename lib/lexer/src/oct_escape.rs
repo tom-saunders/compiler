@@ -4,13 +4,20 @@ pub trait OctEsc<'input> {
     fn consume_oct_escape(&self);
 }
 
-pub struct OctEscImpl<'input, C> {
+pub fn oct_esc_impl<'input, C>(
+    location: &'input dyn LocationState<'input>,
+    text: &'input dyn TextState<'input, Ch = C>,
+) -> Box<dyn OctEsc<'input> + 'input> {
+    Box::new(OctEscImpl::new(location, text))
+}
+
+struct OctEscImpl<'input, C> {
     location: &'input dyn LocationState<'input>,
     text: &'input dyn TextState<'input, Ch = C>,
 }
 
 impl<'input, C: 'input> OctEscImpl<'input, C> {
-    pub fn new(
+    fn new(
         location: &'input dyn LocationState<'input>,
         text: &'input dyn TextState<'input, Ch = C>,
     ) -> OctEscImpl<'input, C> {

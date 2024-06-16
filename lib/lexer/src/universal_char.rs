@@ -8,13 +8,20 @@ pub trait UnivEsc<'input> {
     fn consume_universal_long_identifier(& self);
 }
 
-pub struct UnivEscImpl<'input, C> {
+pub fn univ_esc_impl<'input, C>(
+    location: &'input dyn LocationState<'input>,
+    text: &'input dyn TextState<'input, Ch = C>,
+) -> Box<dyn UnivEsc<'input> + 'input> {
+    Box::new(UnivEscImpl::new(location, text))
+}
+
+struct UnivEscImpl<'input, C> {
     location: &'input dyn LocationState<'input>,
     text: &'input dyn TextState<'input, Ch = C>,
 }
 
 impl<'input, C: 'input> UnivEscImpl<'input, C> {
-    pub fn new(
+    fn new(
             location: &'input dyn LocationState<'input>,
             text: &'input dyn TextState<'input, Ch = C>,
     ) -> UnivEscImpl<'input, C> {
