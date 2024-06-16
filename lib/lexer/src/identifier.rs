@@ -1,24 +1,29 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
+use crate::LexStruct;
 use crate::Token;
 use crate::Token::Unknown;
-use crate::LexStruct;
 
-struct IdentState<'state>{
+struct IdentState<'state> {
     input: &'state str,
     file_name: &'state str,
     file_line: u32,
     column: usize,
 }
 
-pub fn consume_identifier<'state> (lstate: &'state LexStruct) -> Result<(Token, usize), ()> {
+pub fn consume_identifier<'state>(lstate: &'state LexStruct) -> Result<(Token, usize), ()> {
     let this_line = match lstate.input().find('\n') {
         Some(n) => &lstate.input()[..n],
         None => &lstate.input(),
     };
 
-    let state = IdentState{input: &this_line, file_name: lstate.file_name(), file_line: lstate.file_line(), column: lstate.column()};
+    let state = IdentState {
+        input: &this_line,
+        file_name: lstate.file_name(),
+        file_line: lstate.file_line(),
+        column: lstate.column(),
+    };
 
     consume_identifier_inner(&state)
 }
@@ -35,62 +40,101 @@ fn consume_identifier_inner(state: &IdentState) -> Result<(Token, usize), ()> {
     let mut char_peek = state.input.chars().peekable();
 
     match char_peek.peek() {
-        Some('a' ..= 'z' | 'A' ..= 'Z' | '_' | '\\') => (),
+        Some('a'..='z' | 'A'..='Z' | '_' | '\\') => (),
         _ => {
-            eprintln!("{}:{}:{} - warn - this isn't an identifier", state.file_name, state.file_line, state.column);
+            eprintln!(
+                "{}:{}:{} - warn - this isn't an identifier",
+                state.file_name, state.file_line, state.column
+            );
             return Err(());
         }
     };
 
     match char_peek.next() {
-        Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_')) => {
+        Some(c @ ('a'..='z' | 'A'..='Z' | '_')) => {
             consumed += 1;
             output.push(c)
-        },
+        }
         Some('\\') => {
             consumed += 1;
             match char_peek.peek() {
-                Some('u') => consume_identifier_universal_short(state, &mut char_peek, &mut consumed, &mut output, &mut seen_err),
-                Some('U') => consume_identifier_universal_long(state, &mut char_peek, &mut consumed, &mut output, &mut seen_err),
+                Some('u') => consume_identifier_universal_short(
+                    state,
+                    &mut char_peek,
+                    &mut consumed,
+                    &mut output,
+                    &mut seen_err,
+                ),
+                Some('U') => consume_identifier_universal_long(
+                    state,
+                    &mut char_peek,
+                    &mut consumed,
+                    &mut output,
+                    &mut seen_err,
+                ),
                 _ => {
-                    eprintln!("{}:{}:{} - error - unexpected escape after \\ in identifier", state.file_name, state.file_line, state.column);
-                    return unknown!(state, consumed)
+                    eprintln!(
+                        "{}:{}:{} - error - unexpected escape after \\ in identifier",
+                        state.file_name, state.file_line, state.column
+                    );
+                    return unknown!(state, consumed);
                 }
             }
-        },
+        }
         _ => {
-            panic!("{}:{}:{} - FATAL - We just peeked to check this wasn't the case", state.file_name, state.file_line, state.column)
+            panic!(
+                "{}:{}:{} - FATAL - We just peeked to check this wasn't the case",
+                state.file_name, state.file_line, state.column
+            )
         }
     };
 
     loop {
         match char_peek.peek() {
-            Some('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '\\') => consumed += 1,
-            _ => {
-                return keyword_or_literal(state, consumed, output)
-            },
+            Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '\\') => consumed += 1,
+            _ => return keyword_or_literal(state, consumed, output),
         }
         match char_peek.next() {
-            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_')) => output.push(c),
-            Some('\\') => {
-                match char_peek.peek() {
-                    Some('u') => consume_identifier_universal_short(state, &mut char_peek, &mut consumed, &mut output, &mut seen_err),
-                    Some('U') => consume_identifier_universal_long(state, &mut char_peek, &mut consumed, &mut output, &mut seen_err),
-                    _ => {
-                        eprintln!("{}:{}:{} - error - unexpected escape after \\ in identifier", state.file_name, state.file_line, state.column);
-                        return unknown!(state, consumed)
-                    }
+            Some(c @ ('a'..='z' | 'A'..='Z' | '0'..='9' | '_')) => output.push(c),
+            Some('\\') => match char_peek.peek() {
+                Some('u') => consume_identifier_universal_short(
+                    state,
+                    &mut char_peek,
+                    &mut consumed,
+                    &mut output,
+                    &mut seen_err,
+                ),
+                Some('U') => consume_identifier_universal_long(
+                    state,
+                    &mut char_peek,
+                    &mut consumed,
+                    &mut output,
+                    &mut seen_err,
+                ),
+                _ => {
+                    eprintln!(
+                        "{}:{}:{} - error - unexpected escape after \\ in identifier",
+                        state.file_name, state.file_line, state.column
+                    );
+                    return unknown!(state, consumed);
                 }
-            }
+            },
             _ => {
-                panic!("{}:{}:{} - FATAL - We just peeked to check this wasn't the case", state.file_name, state.file_line, state.column)
+                panic!(
+                    "{}:{}:{} - FATAL - We just peeked to check this wasn't the case",
+                    state.file_name, state.file_line, state.column
+                )
             }
         }
         todo!()
     }
 }
 
-fn keyword_or_literal(state: &IdentState, consumed: usize, output: String) -> Result<(Token, usize), ()> {
+fn keyword_or_literal(
+    state: &IdentState,
+    consumed: usize,
+    output: String,
+) -> Result<(Token, usize), ()> {
     match output.as_str() {
         "auto" => Ok((Token::KwAuto, consumed)),
         "break" => Ok((Token::KwBreak, consumed)),
@@ -139,21 +183,32 @@ fn keyword_or_literal(state: &IdentState, consumed: usize, output: String) -> Re
     }
 }
 
-fn consume_identifier_universal_short(state: &IdentState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut String, seen_err: &mut bool) {
+fn consume_identifier_universal_short(
+    state: &IdentState,
+    char_peek: &mut Peekable<Chars>,
+    consumed: &mut usize,
+    output: &mut String,
+    seen_err: &mut bool,
+) {
     match char_peek.next() {
         Some('u') => {
             *consumed += 1;
             ()
-        },
-        _ => panic!("{}:{}:{} - FATAL - this isn't a long universal escape", state.file_name, state.file_line, state.column),
+        }
+        _ => panic!(
+            "{}:{}:{} - FATAL - this isn't a long universal escape",
+            state.file_name, state.file_line, state.column
+        ),
     };
     let mut num_hex: usize = 0;
     let mut hexs = String::new();
 
-    while num_hex < 4 && match char_peek.peek() {
-        Some('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F') => true,
-        _ => false,
-    } {
+    while num_hex < 4
+        && match char_peek.peek() {
+            Some('0'..='9' | 'a'..='f' | 'A'..='F') => true,
+            _ => false,
+        }
+    {
         let c = char_peek.next().expect("We just peeked to check");
         hexs.push(c);
         *consumed += 1;
@@ -163,66 +218,90 @@ fn consume_identifier_universal_short(state: &IdentState, char_peek: &mut Peekab
     match num_hex {
         4 => {
             // good
-            let uval = u32::from_str_radix(&hexs, 16).expect("We've just scanned for four hex chars of input");
+            let uval = u32::from_str_radix(&hexs, 16)
+                .expect("We've just scanned for four hex chars of input");
 
             let meets_universal_constraints = match uval {
                 0x24 | 0x40 | 0x60 => true,
-                0 ..= 0x9f => false,
-                0xd800 ..= 0xdfff => false,
+                0..=0x9f => false,
+                0xd800..=0xdfff => false,
                 _ => true,
             };
-            if ! meets_universal_constraints {
-                eprintln!("{}:{}:{} - error - invalid universal character name \\u{}", state.file_name, state.file_line, state.column, hexs);
+            if !meets_universal_constraints {
+                eprintln!(
+                    "{}:{}:{} - error - invalid universal character name \\u{}",
+                    state.file_name, state.file_line, state.column, hexs
+                );
                 *seen_err = true;
-                return
+                return;
             }
 
             let meets_identifier_constraints = match uval {
-                0x0300 ..= 0x036f => false,
-                0x1dc0 ..= 0x1dff => false,
-                0x20d0 ..= 0x20ff => false,
-                0xfe20 ..= 0xfe2f => false,
+                0x0300..=0x036f => false,
+                0x1dc0..=0x1dff => false,
+                0x20d0..=0x20ff => false,
+                0xfe20..=0xfe2f => false,
                 _ => true,
             };
-            if ! meets_identifier_constraints {
-                eprintln!("{}:{}:{} - error - universal character name \\u{} is not valid in identifiers", state.file_name, state.file_line, state.column, hexs);
+            if !meets_identifier_constraints {
+                eprintln!(
+                    "{}:{}:{} - error - universal character name \\u{} is not valid in identifiers",
+                    state.file_name, state.file_line, state.column, hexs
+                );
                 *seen_err = true;
-                return
+                return;
             }
 
             match char::from_u32(uval) {
                 Some(c) => {
                     output.push(c);
-                },
+                }
                 None => {
-                    eprintln!("{}:{}:{} - error - universal character name \\u{} does not map to a char", state.file_name, state.file_line, state.column, hexs);
+                    eprintln!(
+                        "{}:{}:{} - error - universal character name \\u{} does not map to a char",
+                        state.file_name, state.file_line, state.column, hexs
+                    );
                     *seen_err = true
-                },
+                }
             }
         }
         n => {
-            eprintln!("{}:{}:{} - error - incomplete universal character name \\u{}", state.file_name, state.file_line, state.column, hexs);
+            eprintln!(
+                "{}:{}:{} - error - incomplete universal character name \\u{}",
+                state.file_name, state.file_line, state.column, hexs
+            );
             *seen_err = true
-        },
+        }
     }
     todo!()
 }
 
-fn consume_identifier_universal_long(state: &IdentState, char_peek: &mut Peekable<Chars>, consumed: &mut usize, output: &mut String, seen_err: &mut bool) {
+fn consume_identifier_universal_long(
+    state: &IdentState,
+    char_peek: &mut Peekable<Chars>,
+    consumed: &mut usize,
+    output: &mut String,
+    seen_err: &mut bool,
+) {
     match char_peek.next() {
         Some('U') => {
             *consumed += 1;
             ()
-        },
-        _ => panic!("{}:{}:{} - FATAL - this isn't a long universal escape", state.file_name, state.file_line, state.column),
+        }
+        _ => panic!(
+            "{}:{}:{} - FATAL - this isn't a long universal escape",
+            state.file_name, state.file_line, state.column
+        ),
     };
     let mut num_hex: usize = 0;
     let mut hexs = String::new();
 
-    while num_hex < 8 && match char_peek.peek() {
-        Some('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F') => true,
-        _ => false,
-    } {
+    while num_hex < 8
+        && match char_peek.peek() {
+            Some('0'..='9' | 'a'..='f' | 'A'..='F') => true,
+            _ => false,
+        }
+    {
         let c = char_peek.next().expect("We just peeked to check");
         hexs.push(c);
         *consumed += 1;
@@ -232,53 +311,66 @@ fn consume_identifier_universal_long(state: &IdentState, char_peek: &mut Peekabl
     match num_hex {
         8 => {
             // good
-            let uval = u32::from_str_radix(&hexs, 16).expect("We've just scanned for eight hex chars of input");
+            let uval = u32::from_str_radix(&hexs, 16)
+                .expect("We've just scanned for eight hex chars of input");
 
             let meets_universal_constraints = match uval {
                 0x24 | 0x40 | 0x60 => true,
-                0 ..= 0x9f => false,
-                0xd800 ..= 0xdfff => false,
+                0..=0x9f => false,
+                0xd800..=0xdfff => false,
                 _ => true,
             };
-            if ! meets_universal_constraints {
-                eprintln!("{}:{}:{} - error - invalid universal character name \\U{}", state.file_name, state.file_line, state.column, hexs);
+            if !meets_universal_constraints {
+                eprintln!(
+                    "{}:{}:{} - error - invalid universal character name \\U{}",
+                    state.file_name, state.file_line, state.column, hexs
+                );
                 *seen_err = true;
-                return
+                return;
             }
 
             let meets_identifier_constraints = match uval {
-                0x0300 ..= 0x036f => false,
-                0x1dc0 ..= 0x1dff => false,
-                0x20d0 ..= 0x20ff => false,
-                0xfe20 ..= 0xfe2f => false,
+                0x0300..=0x036f => false,
+                0x1dc0..=0x1dff => false,
+                0x20d0..=0x20ff => false,
+                0xfe20..=0xfe2f => false,
                 _ => true,
             };
-            if ! meets_identifier_constraints {
-                eprintln!("{}:{}:{} - error - universal character name \\U{} is not valid in identifiers", state.file_name, state.file_line, state.column, hexs);
+            if !meets_identifier_constraints {
+                eprintln!(
+                    "{}:{}:{} - error - universal character name \\U{} is not valid in identifiers",
+                    state.file_name, state.file_line, state.column, hexs
+                );
                 *seen_err = true;
-                return
+                return;
             }
 
             match char::from_u32(uval) {
                 Some(c) => {
                     output.push(c);
-                },
+                }
                 None => {
-                    eprintln!("{}:{}:{} - error - universal character name \\U{} does not map to a char", state.file_name, state.file_line, state.column, hexs);
+                    eprintln!(
+                        "{}:{}:{} - error - universal character name \\U{} does not map to a char",
+                        state.file_name, state.file_line, state.column, hexs
+                    );
                     *seen_err = true
-                },
+                }
             }
         }
         n => {
-            eprintln!("{}:{}:{} - error - incomplete universal character name \\U{}", state.file_name, state.file_line, state.column, hexs);
+            eprintln!(
+                "{}:{}:{} - error - incomplete universal character name \\U{}",
+                state.file_name, state.file_line, state.column, hexs
+            );
             *seen_err = true
-        },
+        }
     }
     todo!()
 }
 
 #[cfg(test)]
-mod test{
+mod test {
     use super::IdentState;
 
     use crate::Token::Identifier;

@@ -27,7 +27,11 @@ impl<'iter, C: 'iter> CharLiteralImpl<'iter, C> {
         text: &'iter dyn TextState<Ch = C>,
         char_escape: &'iter dyn CharEsc,
     ) -> CharLiteralImpl<'iter, C> {
-        CharLiteralImpl{location, text, char_escape}
+        CharLiteralImpl {
+            location,
+            text,
+            char_escape,
+        }
     }
 }
 
@@ -37,26 +41,41 @@ impl<'input, C> CharLiteral<C> for CharLiteralImpl<'input, C> {
             Some('\'') => {
                 self.text.next();
             }
-            _ => panic!("{}:{}:{} - FATAL - this isn't a char literal", self.location.f(), self.location.l(), self.location.c()),
+            _ => panic!(
+                "{}:{}:{} - FATAL - this isn't a char literal",
+                self.location.f(),
+                self.location.l(),
+                self.location.c()
+            ),
         }
 
         loop {
             match self.text.peek() {
                 Some('\n') | None => {
-                    eprintln!("{}:{}:{} - error - unterminated char literal", self.location.f(), self.location.l(), self.location.c());
-                    break self.text.emit_unknown()
-                },
+                    eprintln!(
+                        "{}:{}:{} - error - unterminated char literal",
+                        self.location.f(),
+                        self.location.l(),
+                        self.location.c()
+                    );
+                    break self.text.emit_unknown();
+                }
                 _ => (),
             }
             match self.text.next() {
-                Some('\n') | None => panic!("{}:{}:{} - FATAL - We should have handled this in the match block above", self.location.f(), self.location.l(), self.location.c()),
+                Some('\n') | None => panic!(
+                    "{}:{}:{} - FATAL - We should have handled this in the match block above",
+                    self.location.f(),
+                    self.location.l(),
+                    self.location.c()
+                ),
                 Some('\'') => {
                     if self.text.seen_error() {
                         eprintln!("{}:{}:{} - warn - seen error in processing, returning Unknown token not CharLit", self.location.f(), self.location.l(), self.location.c());
-                        break self.text.emit_unknown()
+                        break self.text.emit_unknown();
                     }
-                    break self.text.emit_char_lit(self.location)
-                },
+                    break self.text.emit_char_lit(self.location);
+                }
                 Some('\\') => self.char_escape.consume_char_escape(),
                 Some(c) => self.text.push_char(c),
             }
@@ -69,22 +88,22 @@ mod test {
     use std::borrow::Borrow;
 
     use crate::char_escape::char_esc_impl;
+    use crate::char_escape::{self, CharEsc};
     use crate::hex_escape::hex_esc_impl;
+    use crate::hex_escape::{self, HexEsc};
     use crate::oct_escape::oct_esc_impl;
+    use crate::oct_escape::{self, OctEsc};
     use crate::text::text_state_impl_i16;
     use crate::text::text_state_impl_i32;
     use crate::text::text_state_impl_i8;
+    use crate::text::{self, TextState};
     use crate::universal_char::univ_esc_impl;
+    use crate::universal_char::{self, UnivEsc};
+    use crate::LocationState;
     use crate::Token;
     use crate::Token::CharLit;
-    use crate::Token::CharLit_u;
     use crate::Token::CharLit_U;
-    use crate::LocationState;
-    use crate::text::{self, TextState};
-    use crate::char_escape::{self, CharEsc};
-    use crate::hex_escape::{self, HexEsc};
-    use crate::oct_escape::{self, OctEsc};
-    use crate::universal_char::{self, UnivEsc};
+    use crate::Token::CharLit_u;
 
     use super::char_literal_impl;
     use super::CharLiteral;
@@ -112,7 +131,13 @@ mod test {
         let oct_escape = oct_esc_impl::<i8>(location.as_ref(), text.as_ref());
         let univ_escape = univ_esc_impl::<i8>(location.as_ref(), text.as_ref());
 
-        let char_escape = char_esc_impl(location.as_ref(), text.as_ref(), hex_escape.as_ref(), oct_escape.as_ref(), univ_escape.as_ref());
+        let char_escape = char_esc_impl(
+            location.as_ref(),
+            text.as_ref(),
+            hex_escape.as_ref(),
+            oct_escape.as_ref(),
+            univ_escape.as_ref(),
+        );
 
         let char_lit = char_literal_impl(location.as_ref(), text.as_ref(), char_escape.as_ref());
         char_lit.consume_char_literal()
@@ -126,7 +151,13 @@ mod test {
         let oct_escape = oct_esc_impl::<i16>(location.as_ref(), text.as_ref());
         let univ_escape = univ_esc_impl::<i16>(location.as_ref(), text.as_ref());
 
-        let char_escape = char_esc_impl(location.as_ref(), text.as_ref(), hex_escape.as_ref(), oct_escape.as_ref(), univ_escape.as_ref());
+        let char_escape = char_esc_impl(
+            location.as_ref(),
+            text.as_ref(),
+            hex_escape.as_ref(),
+            oct_escape.as_ref(),
+            univ_escape.as_ref(),
+        );
 
         let char_lit = char_literal_impl(location.as_ref(), text.as_ref(), char_escape.as_ref());
         char_lit.consume_char_literal()
@@ -140,7 +171,13 @@ mod test {
         let oct_escape = oct_esc_impl::<i32>(location.as_ref(), text.as_ref());
         let univ_escape = univ_esc_impl::<i32>(location.as_ref(), text.as_ref());
 
-        let char_escape = char_esc_impl(location.as_ref(), text.as_ref(), hex_escape.as_ref(), oct_escape.as_ref(), univ_escape.as_ref());
+        let char_escape = char_esc_impl(
+            location.as_ref(),
+            text.as_ref(),
+            hex_escape.as_ref(),
+            oct_escape.as_ref(),
+            univ_escape.as_ref(),
+        );
 
         let char_lit = char_literal_impl(location.as_ref(), text.as_ref(), char_escape.as_ref());
         char_lit.consume_char_literal()
@@ -238,13 +275,31 @@ mod test {
 mod oldtest {
     macro_rules! state_and_unk {
         ($input: literal) => {
-            (CharState{input: $input, file_name: "", file_line: 1, column: 1}, Unknown($input.to_string()), $input.len())
+            (
+                CharState {
+                    input: $input,
+                    file_name: "",
+                    file_line: 1,
+                    column: 1,
+                },
+                Unknown($input.to_string()),
+                $input.len(),
+            )
         };
     }
 
     macro_rules! state_and_exp {
         ($input: literal, $exp: expr) => {
-            (CharState{input: $input, file_name: "", file_line: 1, column: 1}, CharLit($exp as i32), $input.len())
+            (
+                CharState {
+                    input: $input,
+                    file_name: "",
+                    file_line: 1,
+                    column: 1,
+                },
+                CharLit($exp as i32),
+                $input.len(),
+            )
         };
     }
 
@@ -252,8 +307,7 @@ mod oldtest {
     fn test_char_literals_unterminated() {
         let (state, exp_t, exp_n) = state_and_unk!("'");
 
-        let (t, n) = consume_char_literal_inner(&state)
-            .expect("expect Unknown token");
+        let (t, n) = consume_char_literal_inner(&state).expect("expect Unknown token");
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n);
@@ -263,8 +317,7 @@ mod oldtest {
     fn test_char_literals_empty() {
         let (state, exp_t, exp_n) = state_and_unk!("''");
 
-        let (t, n) = consume_char_literal_inner(&state)
-            .expect("expect Unknown token");
+        let (t, n) = consume_char_literal_inner(&state).expect("expect Unknown token");
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n);
@@ -274,8 +327,7 @@ mod oldtest {
     fn test_char_literals_one_char() {
         let (state, exp_t, exp_n) = state_and_exp!("'a'", 'a');
 
-        let (t, n) = consume_char_literal_inner(&state)
-            .expect("expect CharLit token");
+        let (t, n) = consume_char_literal_inner(&state).expect("expect CharLit token");
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n);
@@ -285,8 +337,7 @@ mod oldtest {
     fn test_char_literals_two_char_not_escape() {
         let (state, exp_t, exp_n) = state_and_exp!("'ab'", (('a' as i32) << 8) + 'b' as i32);
 
-        let (t, n) = consume_char_literal_inner(&state)
-            .expect("expect CharLit token");
+        let (t, n) = consume_char_literal_inner(&state).expect("expect CharLit token");
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n);
@@ -303,12 +354,10 @@ mod oldtest {
             state_and_exp!(r"'\5'", 0x05),
             state_and_exp!(r"'\6'", 0x06),
             state_and_exp!(r"'\7'", 0x07),
-
             state_and_exp!(r"'\''", b'\''),
             state_and_exp!(r#"'\"'"#, b'\"'),
             state_and_exp!(r"'\?'", b'?'),
             state_and_exp!(r"'\\'", b'\\'),
-
             state_and_exp!(r"'\a'", 0x07),
             state_and_exp!(r"'\b'", 0x08),
             state_and_exp!(r"'\f'", 0x0c),
@@ -328,7 +377,6 @@ mod oldtest {
         assert_eq!(exp_t_n, act_t_n);
     }
 
-
     #[test]
     fn test_char_literals_two_char_invalid_escapes() {
         let test_data = vec![
@@ -347,12 +395,9 @@ mod oldtest {
         assert_eq!(exp_t_n, act_t_n);
     }
 
-
     #[test]
     fn test_char_literals_two_char_hex_escape_with_no_value() {
-        let test_data = vec![
-            state_and_unk!(r"'\xM'"),
-        ];
+        let test_data = vec![state_and_unk!(r"'\xM'")];
 
         let mut exp_t_n: Vec<(Token, usize)> = vec![];
         let mut act_t_n: Vec<(Token, usize)> = vec![];
@@ -386,10 +431,12 @@ mod oldtest {
 
     #[test]
     fn test_char_literals_three_char_not_escape() {
-        let (state, exp_t, exp_n) = state_and_exp!("'abc'", (('a' as i32) << 16) + (('b' as i32) << 8) + 'c' as i32);
+        let (state, exp_t, exp_n) = state_and_exp!(
+            "'abc'",
+            (('a' as i32) << 16) + (('b' as i32) << 8) + 'c' as i32
+        );
 
-        let (t, n) = consume_char_literal_inner(&state)
-            .expect("expect CharLit token");
+        let (t, n) = consume_char_literal_inner(&state).expect("expect CharLit token");
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n)
@@ -441,10 +488,12 @@ mod oldtest {
 
     #[test]
     fn test_char_literals_four_char_not_escape() {
-        let (state, exp_t, exp_n) = state_and_exp!("'abcd'", (('a' as i32) << 24) + (('b' as i32) << 16) + (('c' as i32) << 8) + 'd' as i32);
+        let (state, exp_t, exp_n) = state_and_exp!(
+            "'abcd'",
+            (('a' as i32) << 24) + (('b' as i32) << 16) + (('c' as i32) << 8) + 'd' as i32
+        );
 
-        let (t, n) = consume_char_literal_inner(&state)
-            .expect("expect CharLit token");
+        let (t, n) = consume_char_literal_inner(&state).expect("expect CharLit token");
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n)
@@ -528,10 +577,12 @@ mod oldtest {
     #[test]
     fn test_char_literals_five_char_not_escape() {
         // the first char overflows out of the i32 value space so we only end up with the final four
-        let (state, exp_t, exp_n) = state_and_exp!("'abcde'", (('b' as i32) << 24) + (('c' as i32) << 16) + (('d' as i32) << 8) + 'e' as i32);
+        let (state, exp_t, exp_n) = state_and_exp!(
+            "'abcde'",
+            (('b' as i32) << 24) + (('c' as i32) << 16) + (('d' as i32) << 8) + 'e' as i32
+        );
 
-        let (t, n) = consume_char_literal_inner(&state)
-            .expect("expect CharLit token");
+        let (t, n) = consume_char_literal_inner(&state).expect("expect CharLit token");
 
         assert_eq!(exp_t, t);
         assert_eq!(exp_n, n)

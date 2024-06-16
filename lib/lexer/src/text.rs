@@ -27,7 +27,7 @@ pub trait TextState {
 
 pub fn text_state_impl_i8<'iter>(
     iter: Peekable<Chars<'iter>>,
-) -> Box<dyn TextState<Ch = i8> + 'iter>{
+) -> Box<dyn TextState<Ch = i8> + 'iter> {
     Box::new(I8Text::new(iter))
 }
 
@@ -66,7 +66,7 @@ struct I32Text<'iter> {
 
 impl<'iter> I8Text<'iter> {
     fn new(iter: Peekable<Chars<'iter>>) -> I8Text<'iter> {
-        I8Text{
+        I8Text {
             iter: RefCell::new(iter),
             consumed: RefCell::new(String::new()),
             seen_error: RefCell::new(false),
@@ -77,7 +77,7 @@ impl<'iter> I8Text<'iter> {
 
 impl<'iter> I16Text<'iter> {
     fn new(iter: Peekable<Chars<'iter>>) -> I16Text<'iter> {
-        I16Text{
+        I16Text {
             iter: RefCell::new(iter),
             consumed: RefCell::new(String::new()),
             seen_error: RefCell::new(false),
@@ -88,7 +88,7 @@ impl<'iter> I16Text<'iter> {
 
 impl<'iter> I32Text<'iter> {
     fn new(iter: Peekable<Chars<'iter>>) -> I32Text<'iter> {
-        I32Text{
+        I32Text {
             iter: RefCell::new(iter),
             consumed: RefCell::new(String::new()),
             seen_error: RefCell::new(false),
@@ -123,14 +123,22 @@ impl<'iter> TextState for I8Text<'iter> {
     fn emit_char_lit(&self, location: &dyn LocationState) -> Token {
         match self.output.borrow().len() {
             0 => {
-                eprintln!("{}:{}:{} - error - empty char literal", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - error - empty char literal",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 self.emit_unknown()
-            },
-            1 => {
-                Token::CharLit(self.output.borrow()[0] as i32)
-            },
+            }
+            1 => Token::CharLit(self.output.borrow()[0] as i32),
             _ => {
-                eprintln!("{}:{}:{} - warn - multi-char char literal", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - warn - multi-char char literal",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 let mut u: u32 = 0;
                 for o in self.output.borrow().iter() {
                     (u, _) = u.overflowing_shl(8);
@@ -163,12 +171,16 @@ impl<'iter> TextState for I8Text<'iter> {
         self.output.borrow_mut().push(u as i8)
     }
 
-
     fn push_oct_value(&self, location: &dyn LocationState, mut octs: String) {
         match u8::from_str_radix(&octs, 8) {
             Ok(uval) => self.push_u8(uval),
             Err(e) => {
-                eprintln!("{}:{}:{} - warn - octal escape sequence out of range: {e}", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - warn - octal escape sequence out of range: {e}",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 unsafe {
                     // we reduce the leading octal char by 4 which should bring the value into the i8 range
                     let oct_bytes = octs.as_bytes_mut();
@@ -180,26 +192,43 @@ impl<'iter> TextState for I8Text<'iter> {
                     },
                     Err(e) => panic!("{}:{}:{} - FATAL - We messed up and couldn't parse the new String oct either: {e}", location.f(), location.l(), location.c()),
                 }
-            },
+            }
         }
     }
 
     fn push_hex_value(&self, location: &dyn LocationState, hexs: String) {
-        if ! hexs.is_ascii() {
-            panic!("{}:{}:{} - FATAL - hex digit string must be ascii", location.f(), location.l(), location.c());
+        if !hexs.is_ascii() {
+            panic!(
+                "{}:{}:{} - FATAL - hex digit string must be ascii",
+                location.f(),
+                location.l(),
+                location.c()
+            );
         }
         match hexs.len() {
             0 => {
-                eprintln!("{}:{}:{} - error - hex escape with no following hex digits", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - error - hex escape with no following hex digits",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 self.report_error()
-            },
+            }
             1 | 2 => {
-                let uval = u8::from_str_radix(&hexs, 16).expect("We only matched 1 or 2 hex chars, this should parse to a u8");
+                let uval = u8::from_str_radix(&hexs, 16)
+                    .expect("We only matched 1 or 2 hex chars, this should parse to a u8");
                 self.push_u8(uval)
             }
             n => {
-                eprintln!("{}:{}:{} - warn - hex escape sequence out of range", location.f(), location.l(), location.c());
-                let uval = u8::from_str_radix(&hexs[n-2..] ,16).expect("We're only looking at 2 hex chars, this should parse to a u8");
+                eprintln!(
+                    "{}:{}:{} - warn - hex escape sequence out of range",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
+                let uval = u8::from_str_radix(&hexs[n - 2..], 16)
+                    .expect("We're only looking at 2 hex chars, this should parse to a u8");
                 self.push_u8(uval)
             }
         }
@@ -217,7 +246,6 @@ impl<'iter> TextState for I8Text<'iter> {
         *self.seen_error.borrow()
     }
 }
-
 
 impl<'iter> TextState for I16Text<'iter> {
     type Ch = i16;
@@ -245,14 +273,22 @@ impl<'iter> TextState for I16Text<'iter> {
     fn emit_char_lit(&self, location: &dyn LocationState) -> Token {
         match self.output.borrow().len() {
             0 => {
-                eprintln!("{}:{}:{} - error - empty char literal", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - error - empty char literal",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 self.emit_unknown()
-            },
-            1 => {
-                Token::CharLit_u(self.output.borrow()[0] as i32)
-            },
+            }
+            1 => Token::CharLit_u(self.output.borrow()[0] as i32),
             _ => {
-                eprintln!("{}:{}:{} - warn - multi-char char literal", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - warn - multi-char char literal",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 let mut u: u32 = 0;
                 for o in self.output.borrow().iter() {
                     (u, _) = u.overflowing_shl(16);
@@ -286,23 +322,36 @@ impl<'iter> TextState for I16Text<'iter> {
     }
 
     fn push_oct_value(&self, _location: &dyn LocationState, octs: String) {
-        let u16val = u16::from_str_radix(&octs, 8).expect("We are looking at 1 ..= 3 ot digits, should parse to a u16");
+        let u16val = u16::from_str_radix(&octs, 8)
+            .expect("We are looking at 1 ..= 3 ot digits, should parse to a u16");
         self.push_c(u16val as i16)
     }
 
     fn push_hex_value(&self, location: &dyn LocationState, hexs: String) {
         match hexs.len() {
             0 => {
-                eprintln!("{}:{}:{} - error - hex escape with no following hex digits", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - error - hex escape with no following hex digits",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 self.report_error()
-            },
-            1 ..= 4 => {
-                let u16val = u16::from_str_radix(&hexs, 16).expect("We only matched 1 ..= 4 hex chars, this should parse to a u16");
+            }
+            1..=4 => {
+                let u16val = u16::from_str_radix(&hexs, 16)
+                    .expect("We only matched 1 ..= 4 hex chars, this should parse to a u16");
                 self.push_c(u16val as i16)
             }
             n => {
-                eprintln!("{}:{}:{} - warn - hex escape sequence out of range", location.f(), location.l(), location.c());
-                let u16val = u16::from_str_radix(&hexs[n-4..] ,16).expect("We're only looking at 4 hex chars, this should parse to a u16");
+                eprintln!(
+                    "{}:{}:{} - warn - hex escape sequence out of range",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
+                let u16val = u16::from_str_radix(&hexs[n - 4..], 16)
+                    .expect("We're only looking at 4 hex chars, this should parse to a u16");
                 self.push_c(u16val as i16)
             }
         }
@@ -347,15 +396,27 @@ impl<'iter> TextState for I32Text<'iter> {
     fn emit_char_lit(&self, location: &dyn LocationState) -> Token {
         match self.output.borrow().len() {
             0 => {
-                eprintln!("{}:{}:{} - error - empty char literal", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - error - empty char literal",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 self.emit_unknown()
-            },
-            1 => {
-                Token::CharLit_U(self.output.borrow()[0])
-            },
+            }
+            1 => Token::CharLit_U(self.output.borrow()[0]),
             _ => {
-                eprintln!("{}:{}:{} - warn - multi-char char literal", location.f(), location.l(), location.c());
-                let v = *self.output.borrow().last().expect("We just checked there is at least one value in the vector");
+                eprintln!(
+                    "{}:{}:{} - warn - multi-char char literal",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
+                let v = *self
+                    .output
+                    .borrow()
+                    .last()
+                    .expect("We just checked there is at least one value in the vector");
                 Token::CharLit_U(v)
             }
         }
@@ -378,23 +439,36 @@ impl<'iter> TextState for I32Text<'iter> {
     }
 
     fn push_oct_value(&self, _location: &dyn LocationState, octs: String) {
-        let u32val = u32::from_str_radix(&octs, 8).expect("We are looking at 1 ..= 3 ot digits, should parse to a u32");
+        let u32val = u32::from_str_radix(&octs, 8)
+            .expect("We are looking at 1 ..= 3 ot digits, should parse to a u32");
         self.push_c(u32val as i32)
     }
 
     fn push_hex_value(&self, location: &dyn LocationState, hexs: String) {
         match hexs.len() {
             0 => {
-                eprintln!("{}:{}:{} - error - hex escape with no following hex digits", location.f(), location.l(), location.c());
+                eprintln!(
+                    "{}:{}:{} - error - hex escape with no following hex digits",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
                 self.report_error()
-            },
-            1 ..= 8 => {
-                let u32val = u32::from_str_radix(&hexs, 16).expect("We only matched 1 ..= 8 hex chars, this should parse to a u32");
+            }
+            1..=8 => {
+                let u32val = u32::from_str_radix(&hexs, 16)
+                    .expect("We only matched 1 ..= 8 hex chars, this should parse to a u32");
                 self.push_c(u32val as i32)
             }
             n => {
-                eprintln!("{}:{}:{} - warn - hex escape sequence out of range", location.f(), location.l(), location.c());
-                let u32val = u32::from_str_radix(&hexs[n-8..] ,16).expect("We're only looking at 4 hex chars, this should parse to a u16");
+                eprintln!(
+                    "{}:{}:{} - warn - hex escape sequence out of range",
+                    location.f(),
+                    location.l(),
+                    location.c()
+                );
+                let u32val = u32::from_str_radix(&hexs[n - 8..], 16)
+                    .expect("We're only looking at 4 hex chars, this should parse to a u16");
                 self.push_c(u32val as i32)
             }
         }

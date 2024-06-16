@@ -1,5 +1,6 @@
-use crate::{hex_escape::HexEsc, oct_escape::OctEsc, text::TextState, universal_char::UnivEsc, LocationState};
-
+use crate::{
+    hex_escape::HexEsc, oct_escape::OctEsc, text::TextState, universal_char::UnivEsc, LocationState,
+};
 
 pub trait CharEsc {
     fn consume_char_escape(&self);
@@ -14,7 +15,6 @@ pub fn char_esc_impl<'iter, C>(
 ) -> Box<dyn CharEsc + 'iter> {
     Box::new(CharEscImpl::new(location, text, hex, oct, univ))
 }
-
 
 struct CharEscImpl<'iter, C> {
     location: &'iter dyn LocationState,
@@ -32,24 +32,27 @@ impl<'iter, C: 'iter> CharEscImpl<'iter, C> {
         oct: &'iter dyn OctEsc,
         univ: &'iter dyn UnivEsc,
     ) -> CharEscImpl<'iter, C> {
-        CharEscImpl{location, text, hex, oct, univ}
+        CharEscImpl {
+            location,
+            text,
+            hex,
+            oct,
+            univ,
+        }
     }
 }
 
 impl<'iter, C> CharEsc for CharEscImpl<'iter, C> {
     fn consume_char_escape(&self) {
         macro_rules! emit_escape {
-            ($o: literal) => {
-                {
-                    self.text.next();
-                    self.text.push_u8($o);
-                }
-            }
+            ($o: literal) => {{
+                self.text.next();
+                self.text.push_u8($o);
+            }};
         }
 
-
         match self.text.peek() {
-            Some('0' ..= '7') => self.oct.consume_oct_escape(),
+            Some('0'..='7') => self.oct.consume_oct_escape(),
             Some('x') => self.hex.consume_hex_escape(),
             Some('u') => self.univ.consume_universal_short(),
             Some('U') => self.univ.consume_universal_long(),
@@ -65,7 +68,12 @@ impl<'iter, C> CharEsc for CharEscImpl<'iter, C> {
             Some('t') => emit_escape!(b'\t'),
             Some('v') => emit_escape!(0x0b),
             None => (),
-            _ => eprintln!("{}:{}:{} - warn - unknown escape in char literal", self.location.f(), self.location.l(), self.location.c()),
+            _ => eprintln!(
+                "{}:{}:{} - warn - unknown escape in char literal",
+                self.location.f(),
+                self.location.l(),
+                self.location.c()
+            ),
         }
     }
 }
@@ -76,23 +84,23 @@ mod test {
     use super::CharEsc;
     use super::CharEscImpl;
 
-    use crate::text::TextState;
-    use crate::LocationState;
-    use crate::text::I8Text;
     use crate::hex_escape::HexEscImpl;
     use crate::oct_escape::OctEscImpl;
+    use crate::text::I8Text;
+    use crate::text::TextState;
     use crate::universal_char::UnivEscImpl;
+    use crate::LocationState;
 
-    struct Dummy{}
+    struct Dummy {}
 
     impl Dummy {
-        pub fn new() -> Self{
-            Dummy{}
+        pub fn new() -> Self {
+            Dummy {}
         }
     }
     impl<'input> LocationState<'input> for Dummy {
         fn f(&self) -> &'input str {
-            return "DUMMY"
+            return "DUMMY";
         }
 
         fn l(&self) -> u32 {
@@ -106,7 +114,6 @@ mod test {
 
     #[test]
     fn do_char_escape() {
-
         let input: &str = "U000000a0";
         let chars = input.chars();
         let iter = chars.peekable();
@@ -116,7 +123,13 @@ mod test {
         let o = OctEscImpl::new(&l, &t);
         let u = UnivEscImpl::new(&l, &t);
 
-        let cei: CharEscImpl<i8> = CharEscImpl{location: &l, text: &t, hex: &h, oct: &o, univ: &u};
+        let cei: CharEscImpl<i8> = CharEscImpl {
+            location: &l,
+            text: &t,
+            hex: &h,
+            oct: &o,
+            univ: &u,
+        };
 
         cei.consume_char_escape();
 
