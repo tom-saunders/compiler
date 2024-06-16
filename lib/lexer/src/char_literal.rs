@@ -85,20 +85,14 @@ impl<'input, C> CharLiteral<C> for CharLiteralImpl<'input, C> {
 
 #[cfg(test)]
 mod test {
-    use std::borrow::Borrow;
 
     use crate::char_escape::char_esc_impl;
-    use crate::char_escape::{self, CharEsc};
     use crate::hex_escape::hex_esc_impl;
-    use crate::hex_escape::{self, HexEsc};
     use crate::oct_escape::oct_esc_impl;
-    use crate::oct_escape::{self, OctEsc};
     use crate::text::text_state_impl_i16;
     use crate::text::text_state_impl_i32;
     use crate::text::text_state_impl_i8;
-    use crate::text::{self, TextState};
     use crate::universal_char::univ_esc_impl;
-    use crate::universal_char::{self, UnivEsc};
     use crate::LocationState;
     use crate::Token;
     use crate::Token::CharLit;
@@ -106,7 +100,6 @@ mod test {
     use crate::Token::CharLit_u;
 
     use super::char_literal_impl;
-    use super::CharLiteral;
 
     struct TestLocation;
     impl LocationState for TestLocation {
@@ -204,6 +197,24 @@ mod test {
         (expected, actual)
     }
 
+    macro_rules! exp_and_actual_i8 {
+        ($v: literal, $input: literal) => {
+            (CharLit($v as i32), actual_i8($input))
+        };
+    }
+
+    macro_rules! exp_and_actual_i16 {
+        ($v: literal, $input: literal) => {
+            (CharLit_u($v as i32), actual_i16($input))
+        };
+    }
+
+    macro_rules! exp_and_actual_i32 {
+        ($v: literal, $input: literal) => {
+            (CharLit_U($v as i32), actual_i32($input))
+        };
+    }
+
     #[test]
     fn test_i8_char_literal_empty() {
         let (expected, actual) = unknown_and_actual_i8("''");
@@ -269,59 +280,94 @@ mod test {
 
         assert_eq!(expected, actual)
     }
+
+    #[test]
+    fn test_i8_char_literal_one_1byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i8!('a', "'a'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i16_char_literal_one_1byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i16!('a', "'a'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i32_char_literal_one_1byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i32!('a', "'a'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i8_char_literal_one_2byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i8!(0xc2a0, "'\u{00a0}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i16_char_literal_one_2byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i16!(0xa0, "'\u{00a0}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i32_char_literal_one_2byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i32!(0xa0, "'\u{00a0}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i8_char_literal_one_3byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i8!(0xe0a080, "'\u{0800}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i16_char_literal_one_3byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i16!(0x0800, "'\u{0800}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i32_char_literal_one_3byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i32!(0x0800, "'\u{0800}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i8_char_literal_one_4byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i8!(0xf0908080u32, "'\u{010000}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i16_char_literal_one_4byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i16!(0xd800dc00u32, "'\u{010000}'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i32_char_literal_one_4byte_utf8_char() {
+        let (expected, actual) = exp_and_actual_i32!(0x010000, "'\u{010000}'");
+
+        assert_eq!(expected, actual)
+    }
 }
 
 #[cfg(none)]
 mod oldtest {
-    macro_rules! state_and_unk {
-        ($input: literal) => {
-            (
-                CharState {
-                    input: $input,
-                    file_name: "",
-                    file_line: 1,
-                    column: 1,
-                },
-                Unknown($input.to_string()),
-                $input.len(),
-            )
-        };
-    }
-
-    macro_rules! state_and_exp {
-        ($input: literal, $exp: expr) => {
-            (
-                CharState {
-                    input: $input,
-                    file_name: "",
-                    file_line: 1,
-                    column: 1,
-                },
-                CharLit($exp as i32),
-                $input.len(),
-            )
-        };
-    }
-
-    #[test]
-    fn test_char_literals_unterminated() {
-        let (state, exp_t, exp_n) = state_and_unk!("'");
-
-        let (t, n) = consume_char_literal_inner(&state).expect("expect Unknown token");
-
-        assert_eq!(exp_t, t);
-        assert_eq!(exp_n, n);
-    }
-
-    #[test]
-    fn test_char_literals_empty() {
-        let (state, exp_t, exp_n) = state_and_unk!("''");
-
-        let (t, n) = consume_char_literal_inner(&state).expect("expect Unknown token");
-
-        assert_eq!(exp_t, t);
-        assert_eq!(exp_n, n);
-    }
 
     #[test]
     fn test_char_literals_one_char() {
