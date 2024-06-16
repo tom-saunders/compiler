@@ -1,30 +1,30 @@
 use crate::LocationState;
 use crate::text::TextState;
 
-pub trait UnivEsc<'input> {
-    fn consume_universal_short(& self);
-    fn consume_universal_long(& self);
-    fn consume_universal_short_identifier(& self);
-    fn consume_universal_long_identifier(& self);
+pub trait UnivEsc {
+    fn consume_universal_short(&self);
+    fn consume_universal_long(&self);
+    fn consume_universal_short_identifier(&self);
+    fn consume_universal_long_identifier(&self);
 }
 
-pub fn univ_esc_impl<'input, C>(
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
-) -> Box<dyn UnivEsc<'input> + 'input> {
+pub fn univ_esc_impl<'iter, C>(
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
+) -> Box<dyn UnivEsc + 'iter> {
     Box::new(UnivEscImpl::new(location, text))
 }
 
-struct UnivEscImpl<'input, C> {
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
+struct UnivEscImpl<'iter, C> {
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
 }
 
-impl<'input, C: 'input> UnivEscImpl<'input, C> {
+impl<'iter, C: 'iter> UnivEscImpl<'iter, C> {
     fn new(
-            location: &'input dyn LocationState<'input>,
-            text: &'input dyn TextState<'input, Ch = C>,
-    ) -> UnivEscImpl<'input, C> {
+            location: &'iter dyn LocationState,
+            text: &'iter dyn TextState<Ch = C>,
+    ) -> UnivEscImpl<'iter, C> {
         UnivEscImpl{location, text}
     }
 
@@ -93,7 +93,7 @@ impl<'input, C: 'input> UnivEscImpl<'input, C> {
     }
 }
 
-impl<'input, C> UnivEsc<'input> for UnivEscImpl<'input, C> {
+impl<'input, C> UnivEsc for UnivEscImpl<'input, C> {
     fn consume_universal_short(&self) {
             match self.text.peek() {
                 Some('u') => self.text.next(),

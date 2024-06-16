@@ -1,31 +1,31 @@
 use crate::{text::TextState, LocationState};
 
-pub trait OctEsc<'input> {
+pub trait OctEsc {
     fn consume_oct_escape(&self);
 }
 
-pub fn oct_esc_impl<'input, C>(
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
-) -> Box<dyn OctEsc<'input> + 'input> {
+pub fn oct_esc_impl<'iter, C>(
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
+) -> Box<dyn OctEsc + 'iter> {
     Box::new(OctEscImpl::new(location, text))
 }
 
-struct OctEscImpl<'input, C> {
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
+struct OctEscImpl<'iter, C> {
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
 }
 
-impl<'input, C: 'input> OctEscImpl<'input, C> {
+impl<'iter, C: 'iter> OctEscImpl<'iter, C> {
     fn new(
-        location: &'input dyn LocationState<'input>,
-        text: &'input dyn TextState<'input, Ch = C>,
-    ) -> OctEscImpl<'input, C> {
+        location: &'iter dyn LocationState,
+        text: &'iter dyn TextState<Ch = C>,
+    ) -> OctEscImpl<'iter, C> {
         OctEscImpl{location, text}
     }
 }
 
-impl<'input, C> OctEsc<'input> for OctEscImpl<'input, C> {
+impl<'iter, C> OctEsc for OctEscImpl<'iter, C> {
     fn consume_oct_escape(& self) {
         let mut num_octs = 0;
         let mut octs = String::new();

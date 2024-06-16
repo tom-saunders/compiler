@@ -3,35 +3,35 @@ use crate::text::TextState;
 use crate::LocationState;
 use crate::Token;
 
-pub trait CharLiteral<'input, C> {
+pub trait CharLiteral<C> {
     fn consume_char_literal(&self) -> Token;
 }
 
-pub fn char_literal_impl<'input, C>(
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
-    char_escape: &'input dyn CharEsc<'input>,
-) -> Box<dyn CharLiteral<'input, C> + 'input> {
+pub fn char_literal_impl<'iter, C>(
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
+    char_escape: &'iter dyn CharEsc,
+) -> Box<dyn CharLiteral<C> + 'iter> {
     Box::new(CharLiteralImpl::new(location, text, char_escape))
 }
 
-struct CharLiteralImpl<'input, C> {
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
-    char_escape: &'input dyn CharEsc<'input>,
+struct CharLiteralImpl<'iter, C> {
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
+    char_escape: &'iter dyn CharEsc,
 }
 
-impl<'input, C: 'input> CharLiteralImpl<'input, C> {
+impl<'iter, C: 'iter> CharLiteralImpl<'iter, C> {
     fn new(
-        location: &'input dyn LocationState<'input>,
-        text: &'input dyn TextState<'input, Ch = C>,
-        char_escape: &'input dyn CharEsc<'input>,
-    ) -> CharLiteralImpl<'input, C> {
+        location: &'iter dyn LocationState,
+        text: &'iter dyn TextState<Ch = C>,
+        char_escape: &'iter dyn CharEsc,
+    ) -> CharLiteralImpl<'iter, C> {
         CharLiteralImpl{location, text, char_escape}
     }
 }
 
-impl<'input, C> CharLiteral<'input, C> for CharLiteralImpl<'input, C> {
+impl<'input, C> CharLiteral<C> for CharLiteralImpl<'input, C> {
     fn consume_char_literal(&self) -> Token {
         match self.text.peek() {
             Some('\'') => {
@@ -66,8 +66,15 @@ impl<'input, C> CharLiteral<'input, C> for CharLiteralImpl<'input, C> {
 
 #[cfg(test)]
 mod test {
+    use std::borrow::Borrow;
+
+    use crate::char_escape::char_esc_impl;
     use crate::hex_escape::hex_esc_impl;
+    use crate::oct_escape::oct_esc_impl;
+    use crate::text::text_state_impl_i16;
+    use crate::text::text_state_impl_i32;
     use crate::text::text_state_impl_i8;
+    use crate::universal_char::univ_esc_impl;
     use crate::Token;
     use crate::Token::CharLit;
     use crate::Token::CharLit_u;
@@ -79,9 +86,12 @@ mod test {
     use crate::oct_escape::{self, OctEsc};
     use crate::universal_char::{self, UnivEsc};
 
+    use super::char_literal_impl;
+    use super::CharLiteral;
+
     struct TestLocation;
-    impl LocationState<'static> for TestLocation {
-        fn f(&self) -> &'static str {
+    impl LocationState for TestLocation {
+        fn f(&self) -> &str {
             "TEST"
         }
 
@@ -94,19 +104,138 @@ mod test {
         }
     }
 
-    #[test]
-    fn _test_char_literals_empty() {
-        let input = "''";
-        let expected = Token::Unknown(input.to_string());
-
-        let location = TestLocation;
+    fn actual_i8(input: &str) -> Token {
+        let location = Box::new(TestLocation);
         let text = text_state_impl_i8(input.chars().peekable());
-        let hex_escape = hex_esc_impl(&location, text.as_ref());
-        // location: &'input dyn LocationState<'input>,
-        // text: &'input dyn TextState<'input, Ch = C>,
-        // char_escape: &'input dyn CharEsc<'input>,
+
+        let hex_escape = hex_esc_impl::<i8>(location.as_ref(), text.as_ref());
+        let oct_escape = oct_esc_impl::<i8>(location.as_ref(), text.as_ref());
+        let univ_escape = univ_esc_impl::<i8>(location.as_ref(), text.as_ref());
+
+        let char_escape = char_esc_impl(location.as_ref(), text.as_ref(), hex_escape.as_ref(), oct_escape.as_ref(), univ_escape.as_ref());
+
+        let char_lit = char_literal_impl(location.as_ref(), text.as_ref(), char_escape.as_ref());
+        char_lit.consume_char_literal()
     }
 
+    fn actual_i16(input: &str) -> Token {
+        let location = Box::new(TestLocation);
+        let text = text_state_impl_i16(input.chars().peekable());
+
+        let hex_escape = hex_esc_impl::<i16>(location.as_ref(), text.as_ref());
+        let oct_escape = oct_esc_impl::<i16>(location.as_ref(), text.as_ref());
+        let univ_escape = univ_esc_impl::<i16>(location.as_ref(), text.as_ref());
+
+        let char_escape = char_esc_impl(location.as_ref(), text.as_ref(), hex_escape.as_ref(), oct_escape.as_ref(), univ_escape.as_ref());
+
+        let char_lit = char_literal_impl(location.as_ref(), text.as_ref(), char_escape.as_ref());
+        char_lit.consume_char_literal()
+    }
+
+    fn actual_i32(input: &str) -> Token {
+        let location = Box::new(TestLocation);
+        let text = text_state_impl_i32(input.chars().peekable());
+
+        let hex_escape = hex_esc_impl::<i32>(location.as_ref(), text.as_ref());
+        let oct_escape = oct_esc_impl::<i32>(location.as_ref(), text.as_ref());
+        let univ_escape = univ_esc_impl::<i32>(location.as_ref(), text.as_ref());
+
+        let char_escape = char_esc_impl(location.as_ref(), text.as_ref(), hex_escape.as_ref(), oct_escape.as_ref(), univ_escape.as_ref());
+
+        let char_lit = char_literal_impl(location.as_ref(), text.as_ref(), char_escape.as_ref());
+        char_lit.consume_char_literal()
+    }
+
+    fn unknown_and_actual_i8(input: &str) -> (Token, Token) {
+        let expected = Token::Unknown(input.to_string());
+        let actual = actual_i8(input);
+
+        (expected, actual)
+    }
+
+    fn unknown_and_actual_i16(input: &str) -> (Token, Token) {
+        let expected = Token::Unknown(input.to_string());
+        let actual = actual_i16(input);
+
+        (expected, actual)
+    }
+
+    fn unknown_and_actual_i32(input: &str) -> (Token, Token) {
+        let expected = Token::Unknown(input.to_string());
+        let actual = actual_i32(input);
+
+        (expected, actual)
+    }
+
+    #[test]
+    fn test_i8_char_literal_empty() {
+        let (expected, actual) = unknown_and_actual_i8("''");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i16_char_literal_empty() {
+        let (expected, actual) = unknown_and_actual_i16("''");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i32_char_literal_empty() {
+        let (expected, actual) = unknown_and_actual_i32("''");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i8_char_literals_unterminated_eoi() {
+        let (expected, actual) = unknown_and_actual_i8("'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i16_char_literals_unterminated_eoi() {
+        let (expected, actual) = unknown_and_actual_i16("'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i32_char_literals_unterminated_eoi() {
+        let (expected, actual) = unknown_and_actual_i32("'");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i8_char_literals_unterminated_eol() {
+        let expected = Token::Unknown("'".to_string());
+        let actual = actual_i8("'\n");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i16_char_literals_unterminated_eol() {
+        let expected = Token::Unknown("'".to_string());
+        let actual = actual_i16("'\n");
+
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn test_i32_char_literals_unterminated_eol() {
+        let expected = Token::Unknown("'".to_string());
+        let actual = actual_i32("'\n");
+
+        assert_eq!(expected, actual)
+    }
+}
+
+#[cfg(none)]
+mod oldtest {
     macro_rules! state_and_unk {
         ($input: literal) => {
             (CharState{input: $input, file_name: "", file_line: 1, column: 1}, Unknown($input.to_string()), $input.len())

@@ -13,11 +13,12 @@ pub use tokens::Token;
 use Token::*;
 
 
-trait LocationState<'input> {
-    fn f(&self) -> &'input str;
+trait LocationState {
+    fn f(&self) -> &str;
     fn l(&self) -> u32;
     fn c(&self) -> usize;
 }
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocatedToken<'a> {
     locations: Vec<Location<'a>>,
@@ -73,7 +74,7 @@ mod state {
         file_hist: Vec<Location<'input>>,
     }
 
-    impl<'input> super::LocationState<'input> for LexStruct<'input> {
+    impl<'input> super::LocationState for LexStruct<'input> {
         fn f(&self) -> &'input str {
             &self.file_name
         }
@@ -250,10 +251,11 @@ fn process_linemarker(linemarker: &str) -> Result<(u32, &str, (bool, bool, bool,
 }
 
 fn lex_char_literal<'a>(state: &'a mut LexStruct) {
-    match char_literal::consume_char_literal(state) {
-        Ok((t, n)) => state.consume(n, t),
-        Err(()) => panic!("{}:{}:{} - FATAL - we haven't found a character literal: {}", state.file_name(), state.file_name(), state.column(), &state.input()[..10]),
-    }
+    todo!()
+    // match char_literal::consume_char_literal(state) {
+    //     Ok((t, n)) => state.consume(n, t),
+    //     Err(()) => panic!("{}:{}:{} - FATAL - we haven't found a character literal: {}", state.file_name(), state.file_name(), state.column(), &state.input()[..10]),
+    // }
 }
 
 fn lex_identifier<'a>(state: &'a mut LexStruct) {

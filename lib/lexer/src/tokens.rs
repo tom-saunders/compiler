@@ -106,15 +106,15 @@ pub enum Token {
     Semi,
     Star,
     StarEql,
-    String(Vec<i8>),
+    StringLit(Vec<i8>),
     #[allow(non_camel_case_types)]
-    String_L(Vec<i32>),
+    StringLit_L(Vec<i32>),
     #[allow(non_camel_case_types)]
-    String_u(Vec<i16>),
+    StringLit_u(Vec<i16>),
     #[allow(non_camel_case_types)]
-    String_u8(Vec<i8>),
+    StringLit_u8(Vec<i8>),
     #[allow(non_camel_case_types)]
-    String_U(Vec<i32>),
+    StringLit_U(Vec<i32>),
     Tilde,
     Unknown(String),
 }

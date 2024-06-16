@@ -1,31 +1,31 @@
 use crate::{text::TextState, LocationState};
 
-pub trait HexEsc<'input> {
+pub trait HexEsc {
     fn consume_hex_escape(&self);
 }
 
-pub fn hex_esc_impl<'input, C> (
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
-) -> Box<dyn HexEsc<'input> + 'input> {
+pub fn hex_esc_impl<'iter, C> (
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
+) -> Box<dyn HexEsc + 'iter> {
     Box::new(HexEscImpl::new(location, text))
 }
 
-struct HexEscImpl<'input, C> {
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
+struct HexEscImpl<'iter, C> {
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
 }
 
-impl<'input, C: 'input> HexEscImpl<'input, C> {
+impl<'iter, C: 'iter> HexEscImpl<'iter, C> {
     fn new(
-            location: &'input dyn LocationState<'input>,
-            text: &'input dyn TextState<'input, Ch = C>,
-    ) -> HexEscImpl<'input, C> {
+            location: &'iter dyn LocationState,
+            text: &'iter dyn TextState<Ch = C>,
+    ) -> HexEscImpl<'iter, C> {
         HexEscImpl{location, text}
     }
 }
 
-impl<'input, C> HexEsc<'input> for HexEscImpl<'input, C> {
+impl<'iter, C> HexEsc for HexEscImpl<'iter, C> {
     fn consume_hex_escape(&self) {
         match self.text.peek() {
             Some('x') => self.text.next(),

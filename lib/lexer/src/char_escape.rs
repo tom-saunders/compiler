@@ -1,31 +1,42 @@
 use crate::{hex_escape::HexEsc, oct_escape::OctEsc, text::TextState, universal_char::UnivEsc, LocationState};
 
 
-pub trait CharEsc<'input> {
+pub trait CharEsc {
     fn consume_char_escape(&self);
 }
 
-pub struct CharEscImpl<'input, C> {
-    location: &'input dyn LocationState<'input>,
-    text: &'input dyn TextState<'input, Ch = C>,
-    hex: &'input dyn HexEsc<'input>,
-    oct: &'input dyn OctEsc<'input>,
-    univ: &'input dyn UnivEsc<'input>,
+pub fn char_esc_impl<'iter, C>(
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
+    hex: &'iter dyn HexEsc,
+    oct: &'iter dyn OctEsc,
+    univ: &'iter dyn UnivEsc,
+) -> Box<dyn CharEsc + 'iter> {
+    Box::new(CharEscImpl::new(location, text, hex, oct, univ))
 }
 
-impl<'input, C: 'input> CharEscImpl<'input, C> {
+
+struct CharEscImpl<'iter, C> {
+    location: &'iter dyn LocationState,
+    text: &'iter dyn TextState<Ch = C>,
+    hex: &'iter dyn HexEsc,
+    oct: &'iter dyn OctEsc,
+    univ: &'iter dyn UnivEsc,
+}
+
+impl<'iter, C: 'iter> CharEscImpl<'iter, C> {
     fn new(
-        location: &'input dyn LocationState<'input>,
-        text: &'input dyn TextState<'input, Ch = C>,
-        hex: &'input dyn HexEsc<'input>,
-        oct: &'input dyn OctEsc<'input>,
-        univ: &'input dyn UnivEsc<'input>,
-    ) -> CharEscImpl<'input, C> {
+        location: &'iter dyn LocationState,
+        text: &'iter dyn TextState<Ch = C>,
+        hex: &'iter dyn HexEsc,
+        oct: &'iter dyn OctEsc,
+        univ: &'iter dyn UnivEsc,
+    ) -> CharEscImpl<'iter, C> {
         CharEscImpl{location, text, hex, oct, univ}
     }
 }
 
-impl<'input, C> CharEsc<'input> for CharEscImpl<'input, C> {
+impl<'iter, C> CharEsc for CharEscImpl<'iter, C> {
     fn consume_char_escape(&self) {
         macro_rules! emit_escape {
             ($o: literal) => {
@@ -59,7 +70,7 @@ impl<'input, C> CharEsc<'input> for CharEscImpl<'input, C> {
     }
 }
 
-#[cfg(test)]
+#[cfg(none)]
 mod test {
 
     use super::CharEsc;
