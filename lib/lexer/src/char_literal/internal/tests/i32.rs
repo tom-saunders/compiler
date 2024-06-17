@@ -460,3 +460,16 @@ fn test_i32_char_literal_hex_high_9digit() {
 
     assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
 }
+
+#[test]
+fn test_i32_char_literal_hex_mixed_case() {
+    let (expected, actual) = exp_and_actual!(0xffffffff_u32, r"'\xfFfFfFfF'");
+    let CharLit_U(e) = expected else {
+        panic!()
+    };
+    let CharLit_U(a) = actual else {
+        panic!()
+    };
+
+    assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
+}
