@@ -25,8 +25,9 @@ pub trait TextState {
     fn get_output(&self) -> Vec<Self::Ch>;
 
     fn report_error(&self);
-
     fn seen_error(&self) -> bool;
+
+    fn chars_consumed(&self) -> usize;
 }
 
 pub fn text_state_impl_i8<'iter>(

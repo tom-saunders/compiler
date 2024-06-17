@@ -151,4 +151,8 @@ impl<'iter> TextState for I16Text<'iter> {
     fn seen_error(&self) -> bool {
         *self.seen_error.borrow()
     }
+
+    fn chars_consumed(&self) -> usize {
+        self.consumed.borrow().chars().count()
+    }
 }

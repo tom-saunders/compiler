@@ -634,3 +634,103 @@ fn test_i8_char_literal_2_4byte_univ_char_long() {
 
     assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
 }
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_short_0hex() {
+    let (expected, actual) = unknown_and_actual(r"'\ug'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_short_1hex() {
+    let (expected, actual) = unknown_and_actual(r"'\u0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_short_2hex() {
+    let (expected, actual) = unknown_and_actual(r"'\ua0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_short_3hex() {
+    let (expected, actual) = unknown_and_actual(r"'\u0a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_misleading_univ_char_short_5hex() {
+    let (expected, actual) = exp_and_actual!(0xc2a0_61, r"'\u00a0a'");
+    let (e, a) = unwrap_values(&expected, &actual);
+
+    assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_0hex() {
+    let (expected, actual) = unknown_and_actual(r"'\Ug'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_1hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_2hex() {
+    let (expected, actual) = unknown_and_actual(r"'\Ua0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_3hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U0a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_4hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U00a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_5hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U000a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_6hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U0000a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_incomplete_univ_char_long_7hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U00000a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i8_char_literal_misleading_univ_char_long_9hex() {
+    let (expected, actual) = exp_and_actual!(0xc2a0_61, r"'\U000000a0a'");
+    let (e, a) = unwrap_values(&expected, &actual);
+
+    assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
+}

@@ -1,3 +1,8 @@
+mod internal;
+
+pub use internal::Identifier;
+pub use internal::identifier_impl;
+
 use std::iter::Peekable;
 use std::str::Chars;
 
