@@ -412,3 +412,10 @@ fn test_i8_char_literal_hex_mixed_case() {
 
     assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
 }
+
+#[test]
+fn test_i8_char_literal_single_backslash() {
+    let (expected, actual) = unknown_and_actual(r"'\'");
+
+    assert_eq!(expected, actual)
+}
