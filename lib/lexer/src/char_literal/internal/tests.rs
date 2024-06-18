@@ -1,6 +1,6 @@
-mod i16;
-mod i32;
-mod i8;
+mod i16_char;
+mod i32_char;
+mod i8_char;
 
 use crate::tests::TestLocation;
 

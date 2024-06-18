@@ -1,5 +1,6 @@
 mod char_literal;
 mod identifier;
+mod string_literal;
 mod text;
 mod tokens;
 
