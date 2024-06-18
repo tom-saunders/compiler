@@ -64,8 +64,8 @@ impl<'iter> TextState for I16Text<'iter> {
             }
             1 => {
                 let v = self.output.borrow()[0];
-                Token::CharLit_u((v as i32)  & 0x0000ffff)
-            },
+                Token::CharLit_u((v as i32) & 0x0000ffff)
+            }
             _ => {
                 eprintln!(
                     "{}:{}:{} - warn - multi-char char literal",

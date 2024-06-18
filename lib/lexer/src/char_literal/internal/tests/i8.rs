@@ -5,8 +5,8 @@ use crate::hex_escape::hex_esc_impl;
 use crate::oct_escape::oct_esc_impl;
 use crate::text::text_state_impl_i8;
 use crate::universal_char::univ_esc_impl;
-use crate::Token;
 use crate::CharLit;
+use crate::Token;
 
 fn actual(input: &str) -> Token {
     let location = Box::new(TestLocation);
@@ -42,8 +42,8 @@ macro_rules! exp_and_actual {
 }
 
 fn unwrap_values(left: &Token, right: &Token) -> (i32, i32) {
-    let CharLit(l) = left else {panic!()};
-    let CharLit(r) = right else {panic!()};
+    let CharLit(l) = left else { panic!() };
+    let CharLit(r) = right else { panic!() };
     (*l, *r)
 }
 

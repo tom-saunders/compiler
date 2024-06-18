@@ -1,6 +1,6 @@
-mod i8_text;
 mod i16_text;
 mod i32_text;
+mod i8_text;
 
 use std::{cell::RefCell, iter::Peekable, str::Chars};
 

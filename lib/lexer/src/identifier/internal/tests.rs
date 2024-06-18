@@ -1,11 +1,11 @@
 use super::*;
 
+use crate::tests::TestLocation;
 use crate::text::text_state_impl_i8;
 use crate::universal_char::univ_esc_impl;
-use crate::tests::TestLocation;
 
-use crate::Token::Unknown;
 use crate::Token::Identifier;
+use crate::Token::Unknown;
 
 fn actual(input: &str) -> (Token, usize) {
     let location = Box::new(TestLocation);
@@ -468,7 +468,10 @@ fn test_kw__Thread_local() {
 
 macro_rules! ascii_exp_and_actual {
     ($input: literal) => {
-        ((Identifier($input.to_string()), $input.len()), actual($input))
+        (
+            (Identifier($input.to_string()), $input.len()),
+            actual($input),
+        )
     };
 }
 
@@ -1090,7 +1093,6 @@ fn test_identifier_allowed_univ_escape_short_0x02ff() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0x0300() {
     let exp_sz = 6;
@@ -1099,7 +1101,6 @@ fn test_identifier_forbidden_univ_escape_short_0x0300() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0x036f() {
@@ -1130,7 +1131,6 @@ fn test_identifier_allowed_univ_escape_short_0x1dbf() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0x1dc0() {
     let exp_sz = 6;
@@ -1139,7 +1139,6 @@ fn test_identifier_forbidden_univ_escape_short_0x1dc0() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0x1dff() {
@@ -1170,7 +1169,6 @@ fn test_identifier_allowed_univ_escape_short_0x20cf() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0x20d0() {
     let exp_sz = 6;
@@ -1179,7 +1177,6 @@ fn test_identifier_forbidden_univ_escape_short_0x20d0() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0x20ff() {
@@ -1210,7 +1207,6 @@ fn test_identifier_allowed_univ_escape_short_0xd7ff() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0xd800() {
     let exp_sz = 6;
@@ -1219,7 +1215,6 @@ fn test_identifier_forbidden_univ_escape_short_0xd800() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0xdfff() {
@@ -1250,7 +1245,6 @@ fn test_identifier_allowed_univ_escape_short_0xfe1f() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0xfe20() {
     let exp_sz = 6;
@@ -1259,7 +1253,6 @@ fn test_identifier_forbidden_univ_escape_short_0xfe20() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_short_0xfe2f() {
@@ -1348,7 +1341,6 @@ fn test_identifier_allowed_univ_escape_long_0x02ff() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0x0300() {
     let exp_sz = 10;
@@ -1357,7 +1349,6 @@ fn test_identifier_forbidden_univ_escape_long_0x0300() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0x036f() {
@@ -1388,7 +1379,6 @@ fn test_identifier_allowed_univ_escape_long_0x1dbf() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0x1dc0() {
     let exp_sz = 10;
@@ -1397,7 +1387,6 @@ fn test_identifier_forbidden_univ_escape_long_0x1dc0() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0x1dff() {
@@ -1428,7 +1417,6 @@ fn test_identifier_allowed_univ_escape_long_0x20cf() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0x20d0() {
     let exp_sz = 10;
@@ -1437,7 +1425,6 @@ fn test_identifier_forbidden_univ_escape_long_0x20d0() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0x20ff() {
@@ -1468,7 +1455,6 @@ fn test_identifier_allowed_univ_escape_long_0xd7ff() {
     assert_eq!(exp_sz, act_sz);
 }
 
-
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0xd800() {
     let exp_sz = 10;
@@ -1477,7 +1463,6 @@ fn test_identifier_forbidden_univ_escape_long_0xd800() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
-
 
 #[test]
 fn test_identifier_forbidden_univ_escape_long_0xdfff() {

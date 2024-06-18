@@ -6,8 +6,8 @@ use crate::oct_escape::oct_esc_impl;
 use crate::text::text_state_impl_i16;
 use crate::universal_char::univ_esc_impl;
 
-use crate::Token;
 use crate::CharLit_u;
+use crate::Token;
 
 fn actual(input: &str) -> Token {
     let location = Box::new(TestLocation);
@@ -43,8 +43,8 @@ macro_rules! exp_and_actual {
 }
 
 fn unwrap_values(left: &Token, right: &Token) -> (i32, i32) {
-    let CharLit_u(l) = left else {panic!()};
-    let CharLit_u(r) = right else {panic!()};
+    let CharLit_u(l) = left else { panic!() };
+    let CharLit_u(r) = right else { panic!() };
     (*l, *r)
 }
 
@@ -638,7 +638,8 @@ fn test_i16_char_literal_2_4byte_univ_char_long() {
     let (e, a) = unwrap_values(&expected, &actual);
 
     assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
-}#[test]
+}
+#[test]
 fn text_i8_char_literal_incomplete_univ_char_short_0hex() {
     let (expected, actual) = unknown_and_actual(r"'\ug'");
 

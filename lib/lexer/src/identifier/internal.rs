@@ -3,7 +3,7 @@ mod tests;
 
 use crate::{text::TextState, universal_char::UnivEsc, LocationState, Token};
 
-pub trait Identifier{
+pub trait Identifier {
     fn consume_identifier(&self) -> Token;
 }
 
@@ -27,7 +27,7 @@ impl<'iter> IdentifierImpl<'iter> {
         text: &'iter dyn TextState<Ch = i8>,
         univ: &'iter dyn UnivEsc,
     ) -> IdentifierImpl<'iter> {
-        IdentifierImpl{
+        IdentifierImpl {
             location,
             text,
             univ,
@@ -38,21 +38,26 @@ impl<'iter> IdentifierImpl<'iter> {
 impl<'iter> Identifier for IdentifierImpl<'iter> {
     fn consume_identifier(&self) -> Token {
         match self.text.peek() {
-            Some(c @ ('a' ..= 'z'| 'A' ..= 'Z' | '_')) => {
+            Some(c @ ('a'..='z' | 'A'..='Z' | '_')) => {
                 self.text.push_char(c);
                 self.text.next();
-            },
+            }
             Some('\\') => {
                 self.text.next();
                 match self.text.peek() {
                     Some('u') => self.univ.consume_universal_short_identifier(),
                     Some('U') => self.univ.consume_universal_long_identifier(),
                     _ => {
-                        eprintln!("{}:{}:{} - error - stray \\ in program", self.location.f(), self.location.l(), self.location.c());
+                        eprintln!(
+                            "{}:{}:{} - error - stray \\ in program",
+                            self.location.f(),
+                            self.location.l(),
+                            self.location.c()
+                        );
                         self.text.report_error()
-                    },
+                    }
                 }
-            },
+            }
             _ => {
                 panic!(
                     "{}:{}:{} - FATAL - invalid initial character for identifier",
@@ -60,28 +65,31 @@ impl<'iter> Identifier for IdentifierImpl<'iter> {
                     self.location.l(),
                     self.location.c()
                 )
-            },
+            }
         };
         let ident_i8s = loop {
             match self.text.peek() {
-                Some(c @ ('a' ..= 'z'| 'A' ..= 'Z' | '0' ..= '9' | '_')) => {
+                Some(c @ ('a'..='z' | 'A'..='Z' | '0'..='9' | '_')) => {
                     self.text.push_char(c);
                     self.text.next();
-                },
+                }
                 Some('\\') => {
                     self.text.next();
                     match self.text.peek() {
                         Some('u') => self.univ.consume_universal_short_identifier(),
                         Some('U') => self.univ.consume_universal_long_identifier(),
                         _ => {
-                            eprintln!("{}:{}:{} - error - stray '\' in program", self.location.f(), self.location.l(), self.location.c());
+                            eprintln!(
+                                "{}:{}:{} - error - stray '\' in program",
+                                self.location.f(),
+                                self.location.l(),
+                                self.location.c()
+                            );
                             self.text.report_error()
-                        },
+                        }
                     }
-                },
-                _ => {
-                    break self.text.get_output()
                 }
+                _ => break self.text.get_output(),
             }
         };
 
