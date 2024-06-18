@@ -48,7 +48,7 @@ impl<'iter> Identifier for IdentifierImpl<'iter> {
                     Some('u') => self.univ.consume_universal_short_identifier(),
                     Some('U') => self.univ.consume_universal_long_identifier(),
                     _ => {
-                        eprintln!("{}:{}:{} - error - stray '\' in program", self.location.f(), self.location.l(), self.location.c());
+                        eprintln!("{}:{}:{} - error - stray \\ in program", self.location.f(), self.location.l(), self.location.c());
                         self.text.report_error()
                     },
                 }

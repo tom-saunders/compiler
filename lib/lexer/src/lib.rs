@@ -7,6 +7,9 @@ mod text;
 mod tokens;
 mod universal_char;
 
+#[cfg(test)]
+pub mod tests;
+
 pub use tokens::Token;
 
 use Token::*;
@@ -625,25 +628,4 @@ pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
 
     println!("done");
     Ok(state.tokens())
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashMap;
-
-    use super::*;
-
-    #[test]
-    fn test_return_0() {
-        let input = include_str!("asset/return_0.i");
-
-        lex(input);
-    }
-
-    #[test]
-    fn test_include_a() {
-        let input = include_str!("asset/include_a.i");
-
-        lex(input);
-    }
 }
