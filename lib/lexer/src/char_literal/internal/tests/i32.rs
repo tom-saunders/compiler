@@ -333,7 +333,7 @@ fn test_i32_char_literal_single_backslash() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_0() {
+fn test_i32_char_literal_oct_0() {
     let (expected, actual) = exp_and_actual!(0x00, r"'\0'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -341,7 +341,7 @@ fn test_i16_char_literal_oct_0() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_00() {
+fn test_i32_char_literal_oct_00() {
     let (expected, actual) = exp_and_actual!(0x00, r"'\00'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -349,7 +349,7 @@ fn test_i16_char_literal_oct_00() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_000() {
+fn test_i32_char_literal_oct_000() {
     let (expected, actual) = exp_and_actual!(0x00, r"'\000'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -357,7 +357,7 @@ fn test_i16_char_literal_oct_000() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_000_0() {
+fn test_i32_char_literal_oct_000_0() {
     let (expected, actual) = exp_and_actual!(0x30, r"'\0000'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -365,7 +365,7 @@ fn test_i16_char_literal_oct_000_0() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_1() {
+fn test_i32_char_literal_oct_1() {
     let (expected, actual) = exp_and_actual!(0x01, r"'\1'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -373,7 +373,7 @@ fn test_i16_char_literal_oct_1() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_01() {
+fn test_i32_char_literal_oct_01() {
     let (expected, actual) = exp_and_actual!(0x01, r"'\01'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -381,7 +381,7 @@ fn test_i16_char_literal_oct_01() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_001() {
+fn test_i32_char_literal_oct_001() {
     let (expected, actual) = exp_and_actual!(0x01, r"'\001'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -389,7 +389,7 @@ fn test_i16_char_literal_oct_001() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_11() {
+fn test_i32_char_literal_oct_11() {
     let (expected, actual) = exp_and_actual!(0x09, r"'\11'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -397,7 +397,7 @@ fn test_i16_char_literal_oct_11() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_011() {
+fn test_i32_char_literal_oct_011() {
     let (expected, actual) = exp_and_actual!(0x09, r"'\011'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -405,7 +405,7 @@ fn test_i16_char_literal_oct_011() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_111() {
+fn test_i32_char_literal_oct_111() {
     let (expected, actual) = exp_and_actual!(0x49, r"'\111'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -413,7 +413,7 @@ fn test_i16_char_literal_oct_111() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_111_1() {
+fn test_i32_char_literal_oct_111_1() {
     let (expected, actual) = exp_and_actual!(0x31, r"'\1111'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -421,7 +421,7 @@ fn test_i16_char_literal_oct_111_1() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_7() {
+fn test_i32_char_literal_oct_7() {
     let (expected, actual) = exp_and_actual!(0x07, r"'\7'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -429,7 +429,7 @@ fn test_i16_char_literal_oct_7() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_07() {
+fn test_i32_char_literal_oct_07() {
     let (expected, actual) = exp_and_actual!(0x07, r"'\07'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -437,7 +437,7 @@ fn test_i16_char_literal_oct_07() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_007() {
+fn test_i32_char_literal_oct_007() {
     let (expected, actual) = exp_and_actual!(0x07, r"'\007'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -445,7 +445,7 @@ fn test_i16_char_literal_oct_007() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_77() {
+fn test_i32_char_literal_oct_77() {
     let (expected, actual) = exp_and_actual!(0x3f, r"'\77'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -453,7 +453,7 @@ fn test_i16_char_literal_oct_77() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_077() {
+fn test_i32_char_literal_oct_077() {
     let (expected, actual) = exp_and_actual!(0x3f, r"'\077'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -461,7 +461,7 @@ fn test_i16_char_literal_oct_077() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_777() {
+fn test_i32_char_literal_oct_777() {
     let (expected, actual) = exp_and_actual!(0x01ff, r"'\777'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -469,7 +469,7 @@ fn test_i16_char_literal_oct_777() {
 }
 
 #[test]
-fn test_i16_char_literal_oct_777_7() {
+fn test_i32_char_literal_oct_777_7() {
     let (expected, actual) = exp_and_actual!(0x37, r"'\7777'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -477,7 +477,7 @@ fn test_i16_char_literal_oct_777_7() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_a() {
+fn test_i32_char_literal_esc_a() {
     let (expected, actual) = exp_and_actual!(0x07, r"'\a'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -485,7 +485,7 @@ fn test_i16_char_literal_esc_a() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_b() {
+fn test_i32_char_literal_esc_b() {
     let (expected, actual) = exp_and_actual!(0x08, r"'\b'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -493,7 +493,7 @@ fn test_i16_char_literal_esc_b() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_f() {
+fn test_i32_char_literal_esc_f() {
     let (expected, actual) = exp_and_actual!(0x0c, r"'\f'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -501,7 +501,7 @@ fn test_i16_char_literal_esc_f() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_n() {
+fn test_i32_char_literal_esc_n() {
     let (expected, actual) = exp_and_actual!(0x0a, r"'\n'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -509,7 +509,7 @@ fn test_i16_char_literal_esc_n() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_r() {
+fn test_i32_char_literal_esc_r() {
     let (expected, actual) = exp_and_actual!(0x0d, r"'\r'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -517,7 +517,7 @@ fn test_i16_char_literal_esc_r() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_t() {
+fn test_i32_char_literal_esc_t() {
     let (expected, actual) = exp_and_actual!(0x09, r"'\t'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -525,7 +525,7 @@ fn test_i16_char_literal_esc_t() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_v() {
+fn test_i32_char_literal_esc_v() {
     let (expected, actual) = exp_and_actual!(0x0b, r"'\v'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -533,7 +533,7 @@ fn test_i16_char_literal_esc_v() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_a_b() {
+fn test_i32_char_literal_esc_a_b() {
     let (expected, actual) = exp_and_actual!(0x62, r"'\ab'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -541,7 +541,7 @@ fn test_i16_char_literal_esc_a_b() {
 }
 
 #[test]
-fn test_i16_char_literal_esc_a_esc_b() {
+fn test_i32_char_literal_esc_a_esc_b() {
     let (expected, actual) = exp_and_actual!(0x08, r"'\a\b'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -549,7 +549,7 @@ fn test_i16_char_literal_esc_a_esc_b() {
 }
 
 #[test]
-fn test_i16_char_literal_unkn_escape_8() {
+fn test_i32_char_literal_unkn_escape_8() {
     let (expected, actual) = exp_and_actual!(0x38, r"'\8'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -557,7 +557,7 @@ fn test_i16_char_literal_unkn_escape_8() {
 }
 
 #[test]
-fn test_i16_char_literal_1_2byte_univ_char_short() {
+fn test_i32_char_literal_1_2byte_univ_char_short() {
     let (expected, actual) = exp_and_actual!(0xa0, r"'\u00a0'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -565,7 +565,7 @@ fn test_i16_char_literal_1_2byte_univ_char_short() {
 }
 
 #[test]
-fn test_i16_char_literal_2_2byte_univ_char_short() {
+fn test_i32_char_literal_2_2byte_univ_char_short() {
     let (expected, actual) = exp_and_actual!(0xa1_u32, r"'\u00a0\u00a1'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -573,7 +573,7 @@ fn test_i16_char_literal_2_2byte_univ_char_short() {
 }
 
 #[test]
-fn test_i16_char_literal_1_3byte_univ_char_short() {
+fn test_i32_char_literal_1_3byte_univ_char_short() {
     let (expected, actual) = exp_and_actual!(0x0800, r"'\u0800'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -581,7 +581,7 @@ fn test_i16_char_literal_1_3byte_univ_char_short() {
 }
 
 #[test]
-fn test_i16_char_literal_2_3byte_univ_char_short() {
+fn test_i32_char_literal_2_3byte_univ_char_short() {
     let (expected, actual) = exp_and_actual!(0x0801_u32, r"'\u0800\u0801'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -589,7 +589,7 @@ fn test_i16_char_literal_2_3byte_univ_char_short() {
 }
 
 #[test]
-fn test_i16_char_literal_1_2byte_univ_char_long() {
+fn test_i32_char_literal_1_2byte_univ_char_long() {
     let (expected, actual) = exp_and_actual!(0xa0, r"'\U000000a0'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -597,7 +597,7 @@ fn test_i16_char_literal_1_2byte_univ_char_long() {
 }
 
 #[test]
-fn test_i16_char_literal_2_2byte_univ_char_long() {
+fn test_i32_char_literal_2_2byte_univ_char_long() {
     let (expected, actual) = exp_and_actual!(0xa1_u32, r"'\U000000a0\U000000a1'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -605,7 +605,7 @@ fn test_i16_char_literal_2_2byte_univ_char_long() {
 }
 
 #[test]
-fn test_i16_char_literal_1_3byte_univ_char_long() {
+fn test_i32_char_literal_1_3byte_univ_char_long() {
     let (expected, actual) = exp_and_actual!(0x0800, r"'\U00000800'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -613,7 +613,7 @@ fn test_i16_char_literal_1_3byte_univ_char_long() {
 }
 
 #[test]
-fn test_i16_char_literal_2_3byte_univ_char_long() {
+fn test_i32_char_literal_2_3byte_univ_char_long() {
     let (expected, actual) = exp_and_actual!(0x0801, r"'\U00000800\U00000801'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -621,7 +621,7 @@ fn test_i16_char_literal_2_3byte_univ_char_long() {
 }
 
 #[test]
-fn test_i16_char_literal_1_4byte_univ_char_long() {
+fn test_i32_char_literal_1_4byte_univ_char_long() {
     let (expected, actual) = exp_and_actual!(0x00100000, r"'\U00100000'");
     let (e, a) = unwrap_values(&expected, &actual);
 
@@ -629,8 +629,106 @@ fn test_i16_char_literal_1_4byte_univ_char_long() {
 }
 
 #[test]
-fn test_i16_char_literal_2_4byte_univ_char_long() {
+fn test_i32_char_literal_2_4byte_univ_char_long() {
     let (expected, actual) = exp_and_actual!(0x00100001, r"'\U00100000\U00100001'");
+    let (e, a) = unwrap_values(&expected, &actual);
+
+    assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
+}#[test]
+fn text_i32_char_literal_incomplete_univ_char_short_0hex() {
+    let (expected, actual) = unknown_and_actual(r"'\ug'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_short_1hex() {
+    let (expected, actual) = unknown_and_actual(r"'\u0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_short_2hex() {
+    let (expected, actual) = unknown_and_actual(r"'\ua0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_short_3hex() {
+    let (expected, actual) = unknown_and_actual(r"'\u0a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_misleading_univ_char_short_5hex() {
+    let (expected, actual) = exp_and_actual!(0x61, r"'\u00a0a'");
+    let (e, a) = unwrap_values(&expected, &actual);
+
+    assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_0hex() {
+    let (expected, actual) = unknown_and_actual(r"'\Ug'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_1hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_2hex() {
+    let (expected, actual) = unknown_and_actual(r"'\Ua0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_3hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U0a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_4hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U00a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_5hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U000a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_6hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U0000a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_incomplete_univ_char_long_7hex() {
+    let (expected, actual) = unknown_and_actual(r"'\U00000a0g'");
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn text_i32_char_literal_misleading_univ_char_long_9hex() {
+    let (expected, actual) = exp_and_actual!(0x61, r"'\U000000a0a'");
     let (e, a) = unwrap_values(&expected, &actual);
 
     assert_eq!(expected, actual, "{e:#010x} != {a:#010x}")
