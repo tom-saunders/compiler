@@ -9,8 +9,6 @@ pub mod tests;
 
 pub use tokens::Token;
 
-use Token::*;
-
 trait LocationState {
     fn f(&self) -> &str;
     fn l(&self) -> u32;

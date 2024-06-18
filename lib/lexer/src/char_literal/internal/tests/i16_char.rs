@@ -6,8 +6,8 @@ use crate::text::oct_escape::oct_esc_impl;
 use crate::text::text_state_impl_i16;
 use crate::text::univ_esc::univ_esc_impl;
 
-use crate::CharLit_u;
 use crate::Token;
+use crate::Token::CharLit_u;
 
 fn actual(input: &str) -> Token {
     let location = Box::new(TestLocation);
