@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{text::TextState, text::univ_esc::UnivEsc, LocationState, Token};
+use crate::{text::univ_esc::UnivEsc, text::TextState, LocationState, Token};
 
 pub trait Identifier {
     fn consume_identifier(&self) -> Token;
