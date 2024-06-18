@@ -1279,3 +1279,259 @@ fn test_identifier_allowed_univ_escape_short_0xfe30() {
     assert_eq!(exp_token, act_token);
     assert_eq!(exp_sz, act_sz);
 }
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x0000() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U00000000");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x0024() {
+    let exp_token = Identifier("\u{0024}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U00000024");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x0040() {
+    let exp_token = Identifier("\u{0040}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U00000040");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x0060() {
+    let exp_token = Identifier("\u{0060}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U00000060");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x009f() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U0000009f");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x00a0() {
+    let exp_token = Identifier("\u{00a0}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U000000a0");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x02ff() {
+    let exp_token = Identifier("\u{02ff}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U000002ff");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x0300() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U00000300");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x036f() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U0000036f");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x0370() {
+    let exp_token = Identifier("\u{0370}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U00000370");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x1dbf() {
+    let exp_token = Identifier("\u{1dbf}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U00001dbf");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x1dc0() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U00001dc0");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x1dff() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U00001dff");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x1e00() {
+    let exp_token = Identifier("\u{1e00}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U00001e00");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x20cf() {
+    let exp_token = Identifier("\u{20cf}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U000020cf");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x20d0() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U000020d0");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0x20ff() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U000020ff");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0x2100() {
+    let exp_token = Identifier("\u{2100}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U00002100");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0xd7ff() {
+    let exp_token = Identifier("\u{d7ff}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U0000d7ff");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0xd800() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U0000d800");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0xdfff() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U0000dfff");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0xe000() {
+    let exp_token = Identifier("\u{e000}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U0000e000");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0xfe1f() {
+    let exp_token = Identifier("\u{fe1f}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U0000fe1f");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0xfe20() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U0000fe20");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_forbidden_univ_escape_long_0xfe2f() {
+    let exp_sz = 10;
+    let (exp_token, act_token, act_sz) = unknown_and_actual(r"\U0000fe2f");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_identifier_allowed_univ_escape_long_0xfe30() {
+    let exp_token = Identifier("\u{fe30}".to_string());
+    let exp_sz = 10;
+    let (act_token, act_sz) = actual(r"\U0000fe30");
+
+    assert_eq!(exp_token, act_token);
+    assert_eq!(exp_sz, act_sz);
+}
