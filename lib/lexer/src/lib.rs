@@ -295,6 +295,7 @@ fn lex_char_literal<'a>(state: &'a mut LexStruct) {
 }
 
 fn lex_identifier<'a>(state: &'a mut LexStruct) {
+    #[cfg(none)]
     match identifier::consume_identifier(state) {
         Ok((t, n)) => state.consume(n, t),
         Err(()) => panic!(
@@ -305,6 +306,7 @@ fn lex_identifier<'a>(state: &'a mut LexStruct) {
             &state.input()[..10]
         ),
     }
+    todo!()
 }
 
 pub fn lex<'a>(input: &'a str) -> Result<Vec<LocatedToken<'a>>, ()> {
