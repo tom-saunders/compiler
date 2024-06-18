@@ -1,10 +1,10 @@
 use super::*;
 
-use crate::char_escape::char_esc_impl;
-use crate::hex_escape::hex_esc_impl;
-use crate::oct_escape::oct_esc_impl;
+use crate::text::char_escape::char_esc_impl;
+use crate::text::hex_escape::hex_esc_impl;
+use crate::text::oct_escape::oct_esc_impl;
 use crate::text::text_state_impl_i16;
-use crate::universal_char::univ_esc_impl;
+use crate::text::universal_char::univ_esc_impl;
 
 use crate::CharLit_u;
 use crate::Token;

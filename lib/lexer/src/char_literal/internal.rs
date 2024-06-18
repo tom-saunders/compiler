@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::char_escape::CharEsc;
+use crate::text::char_escape::CharEsc;
 use crate::text::TextState;
 use crate::LocationState;
 use crate::Token;

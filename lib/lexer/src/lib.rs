@@ -1,11 +1,7 @@
-mod char_escape;
 mod char_literal;
-mod hex_escape;
 mod identifier;
-mod oct_escape;
 mod text;
 mod tokens;
-mod universal_char;
 
 #[cfg(test)]
 pub mod tests;
