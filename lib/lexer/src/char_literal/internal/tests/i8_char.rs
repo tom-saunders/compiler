@@ -1,5 +1,6 @@
 use super::*;
 
+use crate::char_literal::char_literal_impl;
 use crate::text::char_escape::char_esc_impl;
 use crate::text::hex_escape::hex_esc_impl;
 use crate::text::oct_escape::oct_esc_impl;
