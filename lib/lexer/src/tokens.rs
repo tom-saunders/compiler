@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq, Clone)]
+use core::fmt::Debug;
+
+#[derive(PartialEq, Clone)]
 pub enum Token {
     Amp,
     AmpAmp,
@@ -117,4 +119,138 @@ pub enum Token {
     StringLit_U(Vec<i32>),
     Tilde,
     Unknown(String),
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Amp => write!(f, "Amp"),
+            Self::AmpAmp => write!(f, "AmpAmp"),
+            Self::AmpEql => write!(f, "AmpEql"),
+            Self::Bang => write!(f, "Bang"),
+            Self::BangEql => write!(f, "BangEql"),
+            Self::Caret => write!(f, "Caret"),
+            Self::CaretEql => write!(f, "CaretEql"),
+            Self::CharLit(i) => {
+                let o = format!("{i:#010x}");
+                f.debug_tuple("CharLit").field(&o).finish()
+            }
+            Self::CharLit_L(i) => {
+                let o = format!("{i:#010x}");
+                f.debug_tuple("CharLit_L").field(&o).finish()
+            }
+            Self::CharLit_u(i) => {
+                let o = format!("{i:#010x}");
+                f.debug_tuple("CharLit_u").field(&o).finish()
+            }
+            Self::CharLit_U(i) => {
+                let o = format!("{i:#010x}");
+                f.debug_tuple("CharLit_U").field(&o).finish()
+            }
+            Self::Colon => write!(f, "Colon"),
+            Self::Comma => write!(f, "Comma"),
+            Self::Dash => write!(f, "Dash"),
+            Self::DashDash => write!(f, "DashDash"),
+            Self::DashEql => write!(f, "DashEql"),
+            Self::DashGTh => write!(f, "DashGTh"),
+            Self::Dot => write!(f, "Dot"),
+            Self::Ellipsis => write!(f, "Ellipsis"),
+            Self::Eql => write!(f, "Eql"),
+            Self::EqlEql => write!(f, "EqlEql"),
+            Self::FSl => write!(f, "FSl"),
+            Self::FSlEql => write!(f, "FSlEql"),
+            Self::GTh => write!(f, "GTh"),
+            Self::GThEql => write!(f, "GThEql"),
+            Self::GThGTh => write!(f, "GThGTh"),
+            Self::GThGThEql => write!(f, "GThGThEql"),
+            Self::Identifier(arg0) => f.debug_tuple("Identifier").field(arg0).finish(),
+            Self::KwAuto => write!(f, "KwAuto"),
+            Self::KwBreak => write!(f, "KwBreak"),
+            Self::KwCase => write!(f, "KwCase"),
+            Self::KwChar => write!(f, "KwChar"),
+            Self::KwConst => write!(f, "KwConst"),
+            Self::KwContinue => write!(f, "KwContinue"),
+            Self::KwDefault => write!(f, "KwDefault"),
+            Self::KwDo => write!(f, "KwDo"),
+            Self::KwDouble => write!(f, "KwDouble"),
+            Self::KwElse => write!(f, "KwElse"),
+            Self::KwEnum => write!(f, "KwEnum"),
+            Self::KwExtern => write!(f, "KwExtern"),
+            Self::KwFloat => write!(f, "KwFloat"),
+            Self::KwFor => write!(f, "KwFor"),
+            Self::KwGoto => write!(f, "KwGoto"),
+            Self::KwIf => write!(f, "KwIf"),
+            Self::KwInline => write!(f, "KwInline"),
+            Self::KwInt => write!(f, "KwInt"),
+            Self::KwLong => write!(f, "KwLong"),
+            Self::KwRegister => write!(f, "KwRegister"),
+            Self::KwRestrict => write!(f, "KwRestrict"),
+            Self::KwReturn => write!(f, "KwReturn"),
+            Self::KwShort => write!(f, "KwShort"),
+            Self::KwSigned => write!(f, "KwSigned"),
+            Self::KwSizeof => write!(f, "KwSizeof"),
+            Self::KwStatic => write!(f, "KwStatic"),
+            Self::KwStruct => write!(f, "KwStruct"),
+            Self::KwSwitch => write!(f, "KwSwitch"),
+            Self::KwTypedef => write!(f, "KwTypedef"),
+            Self::KwUnion => write!(f, "KwUnion"),
+            Self::KwUnsigned => write!(f, "KwUnsigned"),
+            Self::KwVoid => write!(f, "KwVoid"),
+            Self::KwWhile => write!(f, "KwWhile"),
+            Self::Kw_Alignas => write!(f, "Kw_Alignas"),
+            Self::Kw_Alignof => write!(f, "Kw_Alignof"),
+            Self::Kw_Atomic => write!(f, "Kw_Atomic"),
+            Self::Kw_Bool => write!(f, "Kw_Bool"),
+            Self::Kw_Complex => write!(f, "Kw_Complex"),
+            Self::Kw_Generic => write!(f, "Kw_Generic"),
+            Self::Kw_Imaginary => write!(f, "Kw_Imaginary"),
+            Self::Kw_Noreturn => write!(f, "Kw_Noreturn"),
+            Self::Kw_Static_assert => write!(f, "Kw_Static_assert"),
+            Self::Kw_Thread_local => write!(f, "Kw_Thread_local"),
+            Self::LBrace => write!(f, "LBrace"),
+            Self::LSquare => write!(f, "LSquare"),
+            Self::LParen => write!(f, "LParen"),
+            Self::LTh => write!(f, "LTh"),
+            Self::LThEql => write!(f, "LThEql"),
+            Self::LThLTh => write!(f, "LThLTh"),
+            Self::LThLThEql => write!(f, "LThLThEql"),
+            Self::Pct => write!(f, "Pct"),
+            Self::PctEql => write!(f, "PctEql"),
+            Self::Pipe => write!(f, "Pipe"),
+            Self::PipeEql => write!(f, "PipeEql"),
+            Self::PipePipe => write!(f, "PipePipe"),
+            Self::Plus => write!(f, "Plus"),
+            Self::PlusEql => write!(f, "PlusEql"),
+            Self::PlusPlus => write!(f, "PlusPlus"),
+            Self::Question => write!(f, "Question"),
+            Self::RBrace => write!(f, "RBrace"),
+            Self::RParen => write!(f, "RParen"),
+            Self::RSquare => write!(f, "RSquare"),
+            Self::Semi => write!(f, "Semi"),
+            Self::Star => write!(f, "Star"),
+            Self::StarEql => write!(f, "StarEql"),
+            Self::StringLit(v) => {
+                let o: Vec<String> = v.iter().map(|i| format!("{i:#04x}")).collect();
+                f.debug_tuple("StringLit").field(&o).finish()
+            }
+            Self::StringLit_L(v) => {
+                let o: Vec<String> = v.iter().map(|i| format!("{i:#010x}")).collect();
+                f.debug_tuple("StringLit_L").field(&o).finish()
+            }
+            Self::StringLit_u(v) => {
+                let o: Vec<String> = v.iter().map(|i| format!("{i:#06x}")).collect();
+                f.debug_tuple("StringLit_u").field(&o).finish()
+            }
+            Self::StringLit_u8(v) => {
+                let o: Vec<String> = v.iter().map(|i| format!("{i:#04x}")).collect();
+                f.debug_tuple("StringLit_u8").field(&o).finish()
+            }
+            Self::StringLit_U(v) => {
+                let o: Vec<String> = v.iter().map(|i| format!("{i:#010x}")).collect();
+                f.debug_tuple("StringLit_U").field(&o).finish()
+            }
+            Self::Tilde => write!(f, "Tilde"),
+            Self::Unknown(arg0) => f.debug_tuple("Unknown").field(arg0).finish(),
+        }
+    }
 }
