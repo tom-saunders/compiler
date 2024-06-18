@@ -1,5 +1,5 @@
 use crate::{
-    text::hex_escape::HexEsc, text::oct_escape::OctEsc, text::TextState, text::universal_char::UnivEsc, LocationState,
+    text::hex_escape::HexEsc, text::oct_escape::OctEsc, text::TextState, text::univ_esc::UnivEsc, LocationState,
 };
 
 pub trait CharEsc {

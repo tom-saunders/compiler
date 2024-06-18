@@ -2,7 +2,7 @@ use super::*;
 
 use crate::tests::TestLocation;
 use crate::text::text_state_impl_i8;
-use crate::text::universal_char::univ_esc_impl;
+use crate::text::univ_esc::univ_esc_impl;
 
 use crate::Token::Identifier;
 use crate::Token::Unknown;
