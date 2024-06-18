@@ -120,6 +120,27 @@ pub enum Token {
     Tilde,
     Unknown(String),
 }
+struct IntDebug<I> {
+    i: I,
+}
+
+impl Debug for IntDebug<i8> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#04x}", self.i)
+    }
+}
+
+impl Debug for IntDebug<i16> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#06x}", self.i)
+    }
+}
+
+impl Debug for IntDebug<i32> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#010x}", self.i)
+    }
+}
 
 impl Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -132,19 +153,19 @@ impl Debug for Token {
             Self::Caret => write!(f, "Caret"),
             Self::CaretEql => write!(f, "CaretEql"),
             Self::CharLit(i) => {
-                let o = format!("{i:#010x}");
+                let o: IntDebug<i32> = IntDebug{i: *i};
                 f.debug_tuple("CharLit").field(&o).finish()
             }
             Self::CharLit_L(i) => {
-                let o = format!("{i:#010x}");
+                let o: IntDebug<i32> = IntDebug{i: *i};
                 f.debug_tuple("CharLit_L").field(&o).finish()
             }
             Self::CharLit_u(i) => {
-                let o = format!("{i:#010x}");
+                let o: IntDebug<i32> = IntDebug{i: *i};
                 f.debug_tuple("CharLit_u").field(&o).finish()
             }
             Self::CharLit_U(i) => {
-                let o = format!("{i:#010x}");
+                let o: IntDebug<i32> = IntDebug{i: *i};
                 f.debug_tuple("CharLit_U").field(&o).finish()
             }
             Self::Colon => write!(f, "Colon"),
@@ -230,23 +251,23 @@ impl Debug for Token {
             Self::Star => write!(f, "Star"),
             Self::StarEql => write!(f, "StarEql"),
             Self::StringLit(v) => {
-                let o: Vec<String> = v.iter().map(|i| format!("{i:#04x}")).collect();
+                let o: Vec<IntDebug<i8>> = v.iter().map(|i| IntDebug{i: *i}).collect();
                 f.debug_tuple("StringLit").field(&o).finish()
             }
             Self::StringLit_L(v) => {
-                let o: Vec<String> = v.iter().map(|i| format!("{i:#010x}")).collect();
+                let o: Vec<IntDebug<i32>> = v.iter().map(|i| IntDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_L").field(&o).finish()
             }
             Self::StringLit_u(v) => {
-                let o: Vec<String> = v.iter().map(|i| format!("{i:#06x}")).collect();
+                let o: Vec<IntDebug<i16>> = v.iter().map(|i| IntDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_u").field(&o).finish()
             }
             Self::StringLit_u8(v) => {
-                let o: Vec<String> = v.iter().map(|i| format!("{i:#04x}")).collect();
+                let o: Vec<IntDebug<i8>> = v.iter().map(|i| IntDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_u8").field(&o).finish()
             }
             Self::StringLit_U(v) => {
-                let o: Vec<String> = v.iter().map(|i| format!("{i:#010x}")).collect();
+                let o: Vec<IntDebug<i32>> = v.iter().map(|i| IntDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_U").field(&o).finish()
             }
             Self::Tilde => write!(f, "Tilde"),
