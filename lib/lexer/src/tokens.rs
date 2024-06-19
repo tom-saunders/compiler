@@ -33,6 +33,10 @@ pub enum Token {
     GThGTh,
     GThGThEql,
     Identifier(String),
+    IntLitI32(i32),
+    IntLitI64(i64),
+    IntLitU32(u32),
+    IntLitU64(u64),
     KwAuto,
     KwBreak,
     KwCase,
@@ -142,6 +146,24 @@ impl Debug for IntDebug<i32> {
     }
 }
 
+impl Debug for IntDebug<u32> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#010x}", self.i)
+    }
+}
+
+impl Debug for IntDebug<i64> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#018x}", self.i)
+    }
+}
+
+impl Debug for IntDebug<u64> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#018x}", self.i)
+    }
+}
+
 impl Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -185,6 +207,22 @@ impl Debug for Token {
             Self::GThGTh => write!(f, "GThGTh"),
             Self::GThGThEql => write!(f, "GThGThEql"),
             Self::Identifier(arg0) => f.debug_tuple("Identifier").field(arg0).finish(),
+            Self::IntLitI32(i) => {
+                let o: IntDebug<i32> = IntDebug{i: *i};
+                f.debug_tuple("IntLitI32").field(&o).finish()
+            }
+            Self::IntLitI64(i) => {
+                let o: IntDebug<i64> = IntDebug{i: *i};
+                f.debug_tuple("IntLitI64").field(&o).finish()
+            }
+            Self::IntLitU32(i) => {
+                let o: IntDebug<u32> = IntDebug{i: *i};
+                f.debug_tuple("IntLitU32").field(&o).finish()
+            }
+            Self::IntLitU64(i) => {
+                let o: IntDebug<u64> = IntDebug{i: *i};
+                f.debug_tuple("IntLitU64").field(&o).finish()
+            }
             Self::KwAuto => write!(f, "KwAuto"),
             Self::KwBreak => write!(f, "KwBreak"),
             Self::KwCase => write!(f, "KwCase"),
