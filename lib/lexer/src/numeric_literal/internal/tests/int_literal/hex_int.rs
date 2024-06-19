@@ -237,7 +237,7 @@ fn test_int_literal_hex_l_suffix_min_i32_is_i64() {
 }
 
 #[test]
-fn test_int_literal_hex_l_suffix_max_i32_is_64() {
+fn test_int_literal_hex_l_suffix_max_i32_is_i64() {
     let value = i32::MAX as i64;
     let input = format!("{:#x}l", value);
 
