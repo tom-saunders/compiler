@@ -26,6 +26,8 @@ pub enum Token {
     Ellipsis,
     Eql,
     EqlEql,
+    FloatLit32(f32),
+    FloatLit64(f64),
     FSl,
     FSlEql,
     GTh,
@@ -124,43 +126,63 @@ pub enum Token {
     Tilde,
     Unknown(String),
 }
-struct IntDebug<I> {
+struct NumericLiteralDebug<I> {
     i: I,
 }
 
-impl Debug for IntDebug<i8> {
+impl Debug for NumericLiteralDebug<i8> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#04x}", self.i)
     }
 }
 
-impl Debug for IntDebug<i16> {
+impl Debug for NumericLiteralDebug<i16> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#06x}", self.i)
     }
 }
 
-impl Debug for IntDebug<i32> {
+impl Debug for NumericLiteralDebug<i32> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#010x}", self.i)
     }
 }
 
-impl Debug for IntDebug<u32> {
+impl Debug for NumericLiteralDebug<u32> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#010x}", self.i)
     }
 }
 
-impl Debug for IntDebug<i64> {
+impl Debug for NumericLiteralDebug<i64> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#018x}", self.i)
     }
 }
 
-impl Debug for IntDebug<u64> {
+impl Debug for NumericLiteralDebug<u64> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#018x}", self.i)
+    }
+}
+
+impl Debug for NumericLiteralDebug<f32> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let as_bits = self.i.to_bits();
+        let mantissa = as_bits & 0x007f_ffff;
+        let exponent = (as_bits & 0x7f80_0000) >> 23;
+        let sign = (as_bits & 0x8000_0000) >> 31;
+        write!(f, "{:01b} {:08b} {:023b}", sign, exponent, mantissa)
+    }
+}
+
+impl Debug for NumericLiteralDebug<f64> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let as_bits = self.i.to_bits();
+        let mantissa = as_bits & 0x000f_ffff_ffff_ffff;
+        let exponent = (as_bits & 0x7ff0_0000_0000_0000) >> 52;
+        let sign = (as_bits & 0x8000_0000_0000_0000) >> 63;
+        write!(f, "{:01b} {:011b} {:052b}", sign, exponent, mantissa)
     }
 }
 
@@ -175,19 +197,19 @@ impl Debug for Token {
             Self::Caret => write!(f, "Caret"),
             Self::CaretEql => write!(f, "CaretEql"),
             Self::CharLit(i) => {
-                let o: IntDebug<i32> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<i32> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("CharLit").field(&o).finish()
             }
             Self::CharLit_L(i) => {
-                let o: IntDebug<i32> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<i32> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("CharLit_L").field(&o).finish()
             }
             Self::CharLit_u(i) => {
-                let o: IntDebug<i32> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<i32> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("CharLit_u").field(&o).finish()
             }
             Self::CharLit_U(i) => {
-                let o: IntDebug<i32> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<i32> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("CharLit_U").field(&o).finish()
             }
             Self::Colon => write!(f, "Colon"),
@@ -200,6 +222,14 @@ impl Debug for Token {
             Self::Ellipsis => write!(f, "Ellipsis"),
             Self::Eql => write!(f, "Eql"),
             Self::EqlEql => write!(f, "EqlEql"),
+            Self::FloatLit32(i) => {
+                let o: NumericLiteralDebug<f32> = NumericLiteralDebug{i: *i};
+                f.debug_tuple("FloatLit32").field(&o).finish()
+            }
+            Self::FloatLit64(i) => {
+                let o: NumericLiteralDebug<f64> = NumericLiteralDebug{i: *i};
+                f.debug_tuple("FloatLit64").field(&o).finish()
+            }
             Self::FSl => write!(f, "FSl"),
             Self::FSlEql => write!(f, "FSlEql"),
             Self::GTh => write!(f, "GTh"),
@@ -208,19 +238,19 @@ impl Debug for Token {
             Self::GThGThEql => write!(f, "GThGThEql"),
             Self::Identifier(arg0) => f.debug_tuple("Identifier").field(arg0).finish(),
             Self::IntLitI32(i) => {
-                let o: IntDebug<i32> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<i32> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("IntLitI32").field(&o).finish()
             }
             Self::IntLitI64(i) => {
-                let o: IntDebug<i64> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<i64> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("IntLitI64").field(&o).finish()
             }
             Self::IntLitU32(i) => {
-                let o: IntDebug<u32> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<u32> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("IntLitU32").field(&o).finish()
             }
             Self::IntLitU64(i) => {
-                let o: IntDebug<u64> = IntDebug{i: *i};
+                let o: NumericLiteralDebug<u64> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("IntLitU64").field(&o).finish()
             }
             Self::KwAuto => write!(f, "KwAuto"),
@@ -289,23 +319,23 @@ impl Debug for Token {
             Self::Star => write!(f, "Star"),
             Self::StarEql => write!(f, "StarEql"),
             Self::StringLit(v) => {
-                let o: Vec<IntDebug<i8>> = v.iter().map(|i| IntDebug{i: *i}).collect();
+                let o: Vec<NumericLiteralDebug<i8>> = v.iter().map(|i| NumericLiteralDebug{i: *i}).collect();
                 f.debug_tuple("StringLit").field(&o).finish()
             }
             Self::StringLit_L(v) => {
-                let o: Vec<IntDebug<i32>> = v.iter().map(|i| IntDebug{i: *i}).collect();
+                let o: Vec<NumericLiteralDebug<i32>> = v.iter().map(|i| NumericLiteralDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_L").field(&o).finish()
             }
             Self::StringLit_u(v) => {
-                let o: Vec<IntDebug<i16>> = v.iter().map(|i| IntDebug{i: *i}).collect();
+                let o: Vec<NumericLiteralDebug<i16>> = v.iter().map(|i| NumericLiteralDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_u").field(&o).finish()
             }
             Self::StringLit_u8(v) => {
-                let o: Vec<IntDebug<i8>> = v.iter().map(|i| IntDebug{i: *i}).collect();
+                let o: Vec<NumericLiteralDebug<i8>> = v.iter().map(|i| NumericLiteralDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_u8").field(&o).finish()
             }
             Self::StringLit_U(v) => {
-                let o: Vec<IntDebug<i32>> = v.iter().map(|i| IntDebug{i: *i}).collect();
+                let o: Vec<NumericLiteralDebug<i32>> = v.iter().map(|i| NumericLiteralDebug{i: *i}).collect();
                 f.debug_tuple("StringLit_U").field(&o).finish()
             }
             Self::Tilde => write!(f, "Tilde"),
