@@ -911,3 +911,15 @@ fn test_int_literal_dec_e_suffix_unknown() {
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
 }
+
+#[test]
+fn test_int_literal_oct_ul_suffix_dot_rejected() {
+    let value = 1;
+    let input = format!("{}ul.", value);
+
+    let (exp_t, act_t, act_sz) = unknown_and_actual(&input);
+    let exp_sz = 1;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}

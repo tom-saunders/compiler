@@ -42,19 +42,6 @@ struct NumericLiteralImpl<'iter> {
     numeric: &'iter dyn NumericState,
 }
 
-#[derive(Debug, PartialEq)]
-enum Radix {
-    Oct,
-    Dec,
-    Hex,
-}
-
-#[derive(Debug, PartialEq)]
-enum NumType {
-    Integer,
-    Float,
-}
-
 impl<'iter> NumericLiteralImpl<'iter> {
     fn new(
         location: &'iter dyn LocationState,
