@@ -4,9 +4,11 @@ mod hex_float;
 use crate::numeric_literal::numeric_literal_impl;
 use crate::numeric_literal::numeric_state_impl;
 use crate::tests::TestLocation;
+use crate::tokens::F80;
 use crate::Token;
 use crate::Token::FloatLit32;
 use crate::Token::FloatLit64;
+use crate::Token::FloatLit80;
 use crate::Token::Unknown;
 
 fn actual(input: &str) -> (Token, usize) {
@@ -29,13 +31,19 @@ fn unknown_and_actual(input: &str) -> (Token, Token, usize) {
 }
 
 fn exp_f32_and_actual(v: f32, input: &str) -> (Token, Token, usize) {
-        let exp_t: Token = FloatLit32(v);
-        let (act_t, act_sz) = actual(input);
-        (exp_t, act_t, act_sz)
+    let exp_t: Token = FloatLit32(v);
+    let (act_t, act_sz) = actual(input);
+    (exp_t, act_t, act_sz)
 }
 
 fn exp_f64_and_actual(v: f64, input: &str) -> (Token, Token, usize) {
-        let exp_t: Token = FloatLit64(v);
-        let (act_t, act_sz) = actual(input);
-        (exp_t, act_t, act_sz)
+    let exp_t: Token = FloatLit64(v);
+    let (act_t, act_sz) = actual(input);
+    (exp_t, act_t, act_sz)
+}
+
+fn exp_f80_and_actual(v: u128, input: &str) -> (Token, Token, usize) {
+    let exp_t = FloatLit80(F80::new(v));
+    let (act_t, act_sz) = actual(input);
+    (exp_t, act_t, act_sz)
 }

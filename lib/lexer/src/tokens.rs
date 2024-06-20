@@ -28,6 +28,7 @@ pub enum Token {
     EqlEql,
     FloatLit32(f32),
     FloatLit64(f64),
+    FloatLit80(F80),
     FSl,
     FSlEql,
     GTh,
@@ -126,6 +127,22 @@ pub enum Token {
     Tilde,
     Unknown(String),
 }
+
+#[derive(PartialEq, Clone, Copy)]
+pub struct F80 {
+    bits: u128,
+}
+
+impl F80 {
+    pub fn new(bits: u128) -> Self {
+        Self{bits}
+    }
+
+    pub fn bits(&self) -> u128 {
+        self.bits
+    }
+}
+
 struct NumericLiteralDebug<I> {
     i: I,
 }
@@ -186,6 +203,17 @@ impl Debug for NumericLiteralDebug<f64> {
     }
 }
 
+impl Debug for NumericLiteralDebug<F80> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let as_bits = self.i.bits();
+        let mantissa = as_bits & 0x7fff_ffff_ffff_ffff;
+        let integer = (as_bits & 0x8000_0000_0000_0000) >> 63;
+        let exponent = (as_bits & 0x7ff_0000_0000_0000_0000) >> 64;
+        let sign = (as_bits & 0x8000_0000_0000_0000_0000) >> 79;
+        write!(f, "{:01b} {:015b} {:0b} {:063b}", sign, exponent, integer, mantissa)
+    }
+}
+
 impl Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -229,6 +257,10 @@ impl Debug for Token {
             Self::FloatLit64(i) => {
                 let o: NumericLiteralDebug<f64> = NumericLiteralDebug{i: *i};
                 f.debug_tuple("FloatLit64").field(&o).finish()
+            }
+            Self::FloatLit80(i) => {
+                let o = NumericLiteralDebug{i: *i};
+                f.debug_tuple("FloatLit80").field(&o).finish()
             }
             Self::FSl => write!(f, "FSl"),
             Self::FSlEql => write!(f, "FSlEql"),

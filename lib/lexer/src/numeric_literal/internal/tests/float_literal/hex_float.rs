@@ -289,3 +289,112 @@ fn test_float_literal_hex_f_suffix_p_neg() {
     assert_eq!(exp_sz, act_sz);
 }
 
+#[test]
+fn test_float_literal_hex_l_suffix_0_p0() {
+    let value: u128 = 0b0__000_0000_0000_0000__0__000_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0x0.p0l");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_1_p0() {
+    let value: u128 = 0b0__011_1111_1111_1111__1__000_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0x1.p0l");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_upcase_l_suffix_1_p4() {
+    let value: u128 = 0b0__100_0000_0000_0011__1__000_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0x1.p4L");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_min() {
+    let value: u128 = 0b0__000_0000_0000_0000__0__000_0000_0000_0000_0000_0001;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0x1p-16445l");
+    let exp_sz = 22;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_1_max() {
+    let value: u128 = 0b0__111_1111_1111_1110__1__111_1111_1111_1111_1111_1111;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0x1.fffffffffffffffep+16383l");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_no_integer() {
+    let value: u128 = 0b0__011_1111_1111_1111__1__111_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0x.Fp1l");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_no_point() {
+    let value: u128 = 0b0__100_0000_0000_0011__1__111_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0xFp1f");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_int_point() {
+    let value: u128 = 0b0__100_0000_0000_0011__1__111_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0xF.p1f");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_upcase_p() {
+    let value: u128 = 0b0__100_0000_0000_0011__1__111_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0xF.P1f");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_p_pos() {
+    let value: u128 = 0b0__100_0000_0000_0011__1__111_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0xF.p+1f");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
+fn test_float_literal_hex_l_suffix_p_neg() {
+    let value: u128 = 0b0__100_0000_0000_0001__1__111_0000_0000_0000_0000_0000;
+    let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "0xF.p-1f");
+    let exp_sz = 6;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
