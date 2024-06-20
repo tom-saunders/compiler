@@ -50,11 +50,132 @@ impl<'iter> NumericLiteralImpl<'iter> {
         NumericLiteralImpl{location, numeric}
     }
 
+    fn parse_dec_int_no_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 10);
+        match parsed {
+            Ok(u) => {
+                if u <= i32::MAX as u128 {
+                    Token::IntLitI32(u as i32)
+                } else if u <= i64::MAX as u128 {
+                    Token::IntLitI64(u as i64)
+                } else {
+                    let trunc = u as i64;
+                    if (i32::MIN as i64) <= trunc && trunc <= (i32::MAX as i64) {
+                        Token::IntLitI32(trunc as i32)
+                    } else {
+                        Token::IntLitI64(trunc)
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+enum NumericDfa {
+    InitZero(String),
+    InitDot(String),
+    InitZeroX(String),
+    OctInt(String),
+    OctIntL(String, String),
+    OctIntLL(String, String),
+    OctIntU(String, String),
+    OctIntLU(String, String, String),
+    OctIntLLU(String, String, String),
+    OctDecInt(String),
+    DecInt(String),
+    DecIntL(String, String),
+    DecIntLL(String, String),
+    DecIntU(String, String),
+    DecIntLU(String, String, String),
+    DecIntLLU(String, String, String),
+    HexInt(String),
+    HexIntL(String, String),
+    HexIntLL(String, String),
+    HexIntU(String, String),
+    HexIntLU(String, String, String),
+    HexIntLLU(String, String, String),
+    DecFloat(String),
+    DecFloatF(String, String),
+    DecFloatL(String, String),
+    DecFloatExp_(String),
+    DecFloatExpSign(String, String),
+    DecFloatExp(String, String),
+    DecFloatExpF(String, String, String),
+    DecFloatExpL(String, String, String),
+    HexFloatNoExp(String),
+    HexFloatExp_(String),
+    HexFloatExpSign(String, String),
+    HexFloatExp(String, String),
+    HexFloatExpF(String, String, String),
+    HexFloatExpL(String, String, String),
+    Unkn(String),
 }
 
 impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
     fn consume_numeric_literal(&self) -> Token {
-        todo!()
+        use NumericDfa::*;
+        let mut dfa = match self.numeric.peek() {
+            Some('0') => {
+                self.numeric.next();
+                InitZero("0".to_string())
+            }
+            Some(c @ ('0' ..= '9')) => {
+                self.numeric.next();
+                DecInt(String::from(c))
+            }
+            Some('.') => {
+                self.numeric.next();
+                NumericDfa::InitDot(".".to_string())
+            }
+            _ => panic!("{}:{}:{} - FATAL - this isn't a numeric literal", self.location.f(), self.location.l(), self.location.c()),
+        };
+
+        loop {
+            dfa = match (dfa, self.numeric.peek()) {
+                (DecInt(mut seen), Some(c @ ('0' ..= '9'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    DecInt(seen)
+                }
+                (DecInt(mut seen), Some(c @ '.')) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    DecFloat(seen)
+                }
+                (DecInt(mut seen), Some(c @ ('e' | 'E'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    DecFloatExp_(seen)
+                }
+                (DecInt(seen), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    DecIntL(seen, String::from(c))
+                }
+                (DecInt(seen), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    DecIntU(seen, String::from(c))
+                }
+                (DecInt(mut seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    Unkn(seen)
+                }
+                (DecInt(seen), Some(c)) => {
+                    break self.parse_dec_int_no_suffix(seen)
+                }
+                (DecInt(seen), None) => {
+                    break self.parse_dec_int_no_suffix(seen)
+                }
+                (s, c) => {
+                    panic!("{}:{}:{} - FATAL - Unhandled inputs: {:?} {:?}", self.location.f(), self.location.l(), self.location.c(), s, c);
+                }
+            };
+        }
     }
 }
 

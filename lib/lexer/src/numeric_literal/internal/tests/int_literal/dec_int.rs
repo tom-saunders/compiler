@@ -18,7 +18,7 @@ fn test_int_literal_dec_no_suffix_max_i32() {
     let input = format!("{}", value);
 
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 10;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -30,7 +30,7 @@ fn test_int_literal_dec_no_suffix_min_i64() {
     let input = format!("{}", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 10;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -42,19 +42,19 @@ fn test_int_literal_dec_no_suffix_max_i64() {
     let input = format!("{}", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
 }
 
 #[test]
-fn test_int_literal_dec_no_suffix_overflow_u64() {
+fn test_int_literal_dec_no_suffix_overflow_i64() {
     let value = i64::MAX as u64 + 1;
     let input = format!("{}", value);
 
-    let (exp_t, act_t, act_sz) = exp_i32_and_actual(0, &input);
-    let exp_sz = 1;
+    let (exp_t, act_t, act_sz) = exp_i64_and_actual(i64::MIN, &input);
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -901,9 +901,9 @@ fn test_int_literal_dec_abc_suffix_unknown() {
 
 #[test]
 #[allow(non_snake_case)]
-fn test_int_literal_dec_e_suffix_unknown() {
+fn test_int_literal_dec_r_suffix_unknown() {
     let value = 1;
-    let input = format!("{}e", value);
+    let input = format!("{}r", value);
 
     let (exp_t, act_t, act_sz) = unknown_and_actual(&input);
     let exp_sz = 1;

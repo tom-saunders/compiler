@@ -400,7 +400,7 @@ fn test_float_literal_hex_l_suffix_p_neg() {
 }
 
 #[test]
-fn test_float_literal_fl_suffix_rejected() {
+fn test_float_literal_hex_fl_suffix_rejected() {
     let (exp_t, act_t, act_sz) = unknown_and_actual("0xf.p1fl");
     let exp_sz = 8;
 
@@ -409,7 +409,7 @@ fn test_float_literal_fl_suffix_rejected() {
 }
 
 #[test]
-fn test_float_literal_abc_suffix_rejected() {
+fn test_float_literal_hex_abc_suffix_rejected() {
     let (exp_t, act_t, act_sz) = unknown_and_actual("0xf.p1abc");
     let exp_sz = 8;
 
@@ -418,7 +418,7 @@ fn test_float_literal_abc_suffix_rejected() {
 }
 
 #[test]
-fn test_float_literal_f_suffix_dot_rejected() {
+fn test_float_literal_hex_f_suffix_dot_rejected() {
     let (exp_t, act_t, act_sz) = unknown_and_actual("0xf.p1f.");
     let exp_sz = 8;
 
