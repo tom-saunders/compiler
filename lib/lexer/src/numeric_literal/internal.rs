@@ -235,6 +235,33 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 (DecInt(seen), None) => {
                     break self.parse_dec_int_no_suffix(seen)
                 }
+                (DecIntL(mut seen, mut l), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    if l.chars().next().expect("l should never be an empty string") == c {
+                        l.push(c);
+                        DecIntLL(seen, l)
+                    } else {
+                        seen += &l;
+                        seen.push(c);
+                        Unkn(seen)
+                    }
+                }
+                (DecIntL(seen, l), Some(c @ ('u' | 'u'))) => {
+                    self.numeric.next();
+                    DecIntLU(seen, l, String::from(c))
+                }
+                (DecIntL(mut seen, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9'))) => {
+                    self.numeric.next();
+                    seen += &l;
+                    seen.push(c);
+                    Unkn(seen)
+                }
+                (DecIntL(seen, _), Some(_)) => {
+                    break self.parse_dec_int_l_suffix(seen)
+                }
+                (DecIntL(seen, _), None) => {
+                    break self.parse_dec_int_l_suffix(seen)
+                }
                 (DecIntU(seen, u), Some(c @ ('l' | 'L'))) => {
                     self.numeric.next();
                     DecIntLU(seen, u, String::from(c))

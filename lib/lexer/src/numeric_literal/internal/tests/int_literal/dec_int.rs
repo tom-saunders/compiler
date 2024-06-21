@@ -191,7 +191,7 @@ fn test_int_literal_dec_l_suffix_min_i32_is_i64() {
     let input = format!("{}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 2;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -203,7 +203,7 @@ fn test_int_literal_dec_l_suffix_max_i32_is_i64() {
     let input = format!("{}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -215,7 +215,7 @@ fn test_int_literal_dec_l_suffix_min_i64() {
     let input = format!("{}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -227,7 +227,7 @@ fn test_int_literal_dec_l_suffix_max_i64() {
     let input = format!("{}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 20;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -239,7 +239,7 @@ fn test_int_literal_dec_l_suffix_overflow_i64() {
     let input = format!("{}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -252,7 +252,7 @@ fn test_int_literal_dec_L_suffix_min_i32_is_i64() {
     let input = format!("{}L", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 2;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -265,7 +265,7 @@ fn test_int_literal_dec_L_suffix_max_i32_is_i64() {
     let input = format!("{}L", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -278,7 +278,7 @@ fn test_int_literal_dec_L_suffix_min_i64() {
     let input = format!("{}L", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -291,7 +291,7 @@ fn test_int_literal_dec_L_suffix_max_i64() {
     let input = format!("{}L", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 20;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -304,7 +304,7 @@ fn test_int_literal_dec_L_suffix_overflow_i64() {
     let input = format!("{}L", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
