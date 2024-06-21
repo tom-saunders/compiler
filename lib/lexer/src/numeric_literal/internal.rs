@@ -229,10 +229,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     seen.push(c);
                     Unkn(seen)
                 }
-                (DecInt(seen), Some(c)) => {
-                    break self.parse_dec_int_no_suffix(seen)
-                }
-                (DecInt(seen), None) => {
+                (DecInt(seen), _) => {
                     break self.parse_dec_int_no_suffix(seen)
                 }
                 (DecIntL(mut seen, mut l), Some(c @ ('l' | 'L'))) => {
@@ -246,7 +243,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                         Unkn(seen)
                     }
                 }
-                (DecIntL(seen, l), Some(c @ ('u' | 'u'))) => {
+                (DecIntL(seen, l), Some(c @ ('u' | 'U'))) => {
                     self.numeric.next();
                     DecIntLU(seen, l, String::from(c))
                 }
@@ -256,10 +253,20 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     seen.push(c);
                     Unkn(seen)
                 }
-                (DecIntL(seen, _), Some(_)) => {
+                (DecIntL(seen, _), _) => {
                     break self.parse_dec_int_l_suffix(seen)
                 }
-                (DecIntL(seen, _), None) => {
+                (DecIntLL(seen, ll), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    DecIntLLU(seen, ll, String::from(c))
+                }
+                (DecIntLL(mut seen, ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9'))) => {
+                    self.numeric.next();
+                    seen += &ll;
+                    seen.push(c);
+                    Unkn(seen)
+                }
+                (DecIntLL(seen, _), _) => {
                     break self.parse_dec_int_l_suffix(seen)
                 }
                 (DecIntU(seen, u), Some(c @ ('l' | 'L'))) => {
@@ -272,14 +279,11 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     seen.push(c);
                     Unkn(seen)
                 }
-                (DecIntU(seen, _), Some(_)) => {
-                    break self.parse_dec_int_u_suffix(seen)
-                }
-                (DecIntU(seen, _), None) => {
+                (DecIntU(seen, _), _) => {
                     break self.parse_dec_int_u_suffix(seen)
                 }
                 (s, c) => {
-                    panic!("{}:{}:{} - FATAL - Unhandled inputs: {:?} {:?}", self.location.f(), self.location.l(), self.location.c(), s, c);
+                    panic!("{}:{}:{} - FATAL - Unhandled inputs: ({:?}, {:?})", self.location.f(), self.location.l(), self.location.c(), s, c);
                 }
             };
         }
