@@ -913,12 +913,12 @@ fn test_int_literal_dec_r_suffix_unknown() {
 }
 
 #[test]
-fn test_int_literal_dec_ul_suffix_dot_terminates_before_dot() {
+fn test_int_literal_dec_ul_suffix_dot_rejected() {
     let value = 1;
     let input = format!("{}ul.", value);
 
-    let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 3;
+    let (exp_t, act_t, act_sz) = unknown_and_actual(&input);
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);

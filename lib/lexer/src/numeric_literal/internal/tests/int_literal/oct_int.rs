@@ -534,14 +534,14 @@ fn test_int_literal_oct_ul_suffix_overflow_u64_is_u64() {
 }
 
 #[test]
-fn test_int_literal_oct_ul_suffix_dot_terminates_before_dot() {
+fn test_int_literal_oct_ul_suffix_dot_rejected() {
     // {:o} format does not include leading zero
     // {:#o} format emits 0o10.... which isn't what we need
     let value = 1;
     let input = format!("0{:o}ul.", value);
 
-    let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 4;
+    let (exp_t, act_t, act_sz) = unknown_and_actual(&input);
+    let exp_sz = 5;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);

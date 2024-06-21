@@ -177,7 +177,7 @@ enum NumericDfa {
     HexFloatExp(String, String),
     HexFloatExpF(String, String, String),
     HexFloatExpL(String, String, String),
-    Unkn(String),
+    Unkn(String, String),
 }
 
 impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
@@ -224,34 +224,32 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntU(seen, String::from(c))
                 }
-                (DecInt(mut seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '_'))) => {
+                (DecInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '_'))) => {
                     self.numeric.next();
-                    seen.push(c);
-                    Unkn(seen)
+                    let suff = String::from(c);
+                    Unkn(seen, suff)
                 }
                 (DecInt(seen), _) => {
                     break self.parse_dec_int_no_suffix(seen)
                 }
-                (DecIntL(mut seen, mut l), Some(c @ ('l' | 'L'))) => {
+                (DecIntL(seen, mut l), Some(c @ ('l' | 'L'))) => {
                     self.numeric.next();
                     if l.chars().next().expect("l should never be an empty string") == c {
                         l.push(c);
                         DecIntLL(seen, l)
                     } else {
-                        seen += &l;
-                        seen.push(c);
-                        Unkn(seen)
+                        l.push(c);
+                        Unkn(seen, l)
                     }
                 }
                 (DecIntL(seen, l), Some(c @ ('u' | 'U'))) => {
                     self.numeric.next();
                     DecIntLU(seen, l, String::from(c))
                 }
-                (DecIntL(mut seen, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                (DecIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
-                    seen += &l;
-                    seen.push(c);
-                    Unkn(seen)
+                    l.push(c);
+                    Unkn(seen, l)
                 }
                 (DecIntL(seen, _), _) => {
                     break self.parse_dec_int_l_suffix(seen)
@@ -260,43 +258,39 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLLU(seen, ll, String::from(c))
                 }
-                (DecIntLL(mut seen, ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                (DecIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
-                    seen += &ll;
-                    seen.push(c);
-                    Unkn(seen)
+                    ll.push(c);
+                    Unkn(seen, ll)
                 }
                 (DecIntLL(seen, _), _) => {
                     break self.parse_dec_int_l_suffix(seen)
                 }
-                (DecIntLLU(mut seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                (DecIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
-                    seen += &first;
-                    seen += &second;
-                    seen.push(c);
-                    Unkn(seen)
+                    first += &second;
+                    first.push(c);
+                    Unkn(seen, first)
                 }
                 (DecIntLLU(seen, _, _), _) => {
                     break self.parse_dec_int_lu_suffix(seen)
                 }
-                (DecIntLU(mut seen, first, mut second), Some(c @ ('l' | 'L'))) => {
+                (DecIntLU(seen, mut first, mut second), Some(c @ ('l' | 'L'))) => {
                     self.numeric.next();
                     if second.chars().next().expect("second should never be an empty string") == c {
                         second.push(c);
                         DecIntLLU(seen, first, second)
                     } else {
-                        seen += &first;
-                        seen += &second;
-                        seen.push(c);
-                        Unkn(seen)
+                        first += &second;
+                        first.push(c);
+                        Unkn(seen, first)
                     }
                 }
-                (DecIntLU(mut seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                (DecIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
-                    seen += &first;
-                    seen += &second;
-                    seen.push(c);
-                    Unkn(seen)
+                    first += &second;
+                    first.push(c);
+                    Unkn(seen, first)
                 }
                 (DecIntLU(seen, _, _), _) => {
                     break self.parse_dec_int_lu_suffix(seen)
@@ -305,22 +299,23 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLU(seen, u, String::from(c))
                 }
-                (DecIntU(mut seen, u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                (DecIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
-                    seen += &u;
-                    seen.push(c);
-                    Unkn(seen)
+                    u.push(c);
+                    Unkn(seen, u)
                 }
                 (DecIntU(seen, _), _) => {
                     break self.parse_dec_int_u_suffix(seen)
                 }
-                (Unkn(mut seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
-                    seen.push(c);
-                    Unkn(seen)
+                    suff.push(c);
+                    Unkn(seen, suff)
                 }
-                (Unkn(seen), _) => {
-                    break Token::Unknown(seen)
+                (Unkn(seen, suff), _) => {
+                    eprintln!("{}:{}:{} - warn - unprocessable numeric literal: numeric:[{}] suffix:[{}] ", self.location.f(), self.location.l(), self.location.c(), seen, suff);
+                    let combined = seen + &suff;
+                    break Token::Unknown(combined)
                 }
                 (s, c) => {
                     panic!("{}:{}:{} - FATAL - Unhandled inputs: ({:?}, {:?})", self.location.f(), self.location.l(), self.location.c(), s, c);
