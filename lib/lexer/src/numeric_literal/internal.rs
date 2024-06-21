@@ -224,7 +224,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntU(seen, String::from(c))
                 }
-                (DecInt(mut seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A'))) => {
+                (DecInt(mut seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '_'))) => {
                     self.numeric.next();
                     seen.push(c);
                     Unkn(seen)
@@ -247,7 +247,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLU(seen, l, String::from(c))
                 }
-                (DecIntL(mut seen, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9'))) => {
+                (DecIntL(mut seen, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
                     self.numeric.next();
                     seen += &l;
                     seen.push(c);
@@ -260,7 +260,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLLU(seen, ll, String::from(c))
                 }
-                (DecIntLL(mut seen, ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9'))) => {
+                (DecIntLL(mut seen, ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
                     self.numeric.next();
                     seen += &ll;
                     seen.push(c);
@@ -268,6 +268,16 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 }
                 (DecIntLL(seen, _), _) => {
                     break self.parse_dec_int_l_suffix(seen)
+                }
+                (DecIntLLU(mut seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                    self.numeric.next();
+                    seen += &first;
+                    seen += &second;
+                    seen.push(c);
+                    Unkn(seen)
+                }
+                (DecIntLLU(seen, _, _), _) => {
+                    break self.parse_dec_int_lu_suffix(seen)
                 }
                 (DecIntLU(mut seen, first, mut second), Some(c @ ('l' | 'L'))) => {
                     self.numeric.next();
@@ -281,7 +291,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                         Unkn(seen)
                     }
                 }
-                (DecIntLU(mut seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9'))) => {
+                (DecIntLU(mut seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
                     self.numeric.next();
                     seen += &first;
                     seen += &second;
@@ -295,7 +305,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLU(seen, u, String::from(c))
                 }
-                (DecIntU(mut seen, u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9'))) => {
+                (DecIntU(mut seen, u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
                     self.numeric.next();
                     seen += &u;
                     seen.push(c);
@@ -303,6 +313,14 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 }
                 (DecIntU(seen, _), _) => {
                     break self.parse_dec_int_u_suffix(seen)
+                }
+                (Unkn(mut seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    Unkn(seen)
+                }
+                (Unkn(seen), _) => {
+                    break Token::Unknown(seen)
                 }
                 (s, c) => {
                     panic!("{}:{}:{} - FATAL - Unhandled inputs: ({:?}, {:?})", self.location.f(), self.location.l(), self.location.c(), s, c);

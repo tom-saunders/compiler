@@ -441,12 +441,12 @@ fn test_int_literal_hex_ul_suffix_overflow_u64_is_u64() {
 }
 
 #[test]
-fn test_int_literal_hex_ul_suffix_dot_rejected() {
+fn test_int_literal_hex_ul_suffix_dot_terminates_before_dot() {
     let value = 1;
     let input = format!("{:#x}ul.", value);
 
-    let (exp_t, act_t, act_sz) = unknown_and_actual(&input);
-    let exp_sz = 1;
+    let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
+    let exp_sz = 5;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
