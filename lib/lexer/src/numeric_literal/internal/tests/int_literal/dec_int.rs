@@ -441,7 +441,7 @@ fn test_int_literal_dec_ul_suffix_min_i32_is_u64() {
     let input = format!("{}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -453,7 +453,7 @@ fn test_int_literal_dec_ul_suffix_max_i32_is_u64() {
     let input = format!("{}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -465,7 +465,7 @@ fn test_int_literal_dec_ul_suffix_min_i64_is_u64() {
     let input = format!("{}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -477,7 +477,7 @@ fn test_int_literal_dec_ul_suffix_max_i64_is_u64() {
     let input = format!("{}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -489,7 +489,7 @@ fn test_int_literal_dec_ul_suffix_overflow_u64() {
     let input = format!("{}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 22;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -562,7 +562,7 @@ fn test_int_literal_dec_lu_suffix_min_i32_is_u64() {
     let input = format!("{}lu", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -574,7 +574,7 @@ fn test_int_literal_dec_lu_suffix_max_i32_is_u64() {
     let input = format!("{}lu", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -586,7 +586,7 @@ fn test_int_literal_dec_lu_suffix_min_i64_is_u64() {
     let input = format!("{}lu", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -598,7 +598,7 @@ fn test_int_literal_dec_lu_suffix_max_i64_is_u64() {
     let input = format!("{}lu", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -610,7 +610,7 @@ fn test_int_literal_dec_lu_suffix_overflow_u64() {
     let input = format!("{}lu", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 22;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -685,7 +685,7 @@ fn test_int_literal_dec_Ul_suffix_min_i32_is_u64() {
     let input = format!("{}Ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -698,7 +698,7 @@ fn test_int_literal_dec_lU_suffix_min_i32_is_u64() {
     let input = format!("{}lU", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -737,7 +737,7 @@ fn test_int_literal_dec_uL_suffix_min_i32_is_u64() {
     let input = format!("{}uL", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -750,7 +750,7 @@ fn test_int_literal_dec_Lu_suffix_min_i32_is_u64() {
     let input = format!("{}Lu", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -789,7 +789,7 @@ fn test_int_literal_dec_UL_suffix_min_i32_is_u64() {
     let input = format!("{}UL", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -802,7 +802,7 @@ fn test_int_literal_dec_LU_suffix_min_i32_is_u64() {
     let input = format!("{}LU", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
