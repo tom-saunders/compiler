@@ -59,6 +59,7 @@ impl<'iter> NumericLiteralImpl<'iter> {
                 } else if u <= i64::MAX as u128 {
                     Token::IntLitI64(u as i64)
                 } else {
+                    eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", self.location.f(), self.location.l(), self.location.c());
                     let trunc = u as i64;
                     if (i32::MIN as i64) <= trunc && trunc <= (i32::MAX as i64) {
                         Token::IntLitI32(trunc as i32)
@@ -68,7 +69,70 @@ impl<'iter> NumericLiteralImpl<'iter> {
                 }
             }
             Err(e) => {
-                eprintln!("{}:{}:{} - error - value cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), e);
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn parse_dec_int_u_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 10);
+        match parsed {
+            Ok(u) => {
+                if u <= u32::MAX as u128 {
+                    Token::IntLitU32(u as u32)
+                } else if u <= u64::MAX as u128 {
+                    Token::IntLitU64(u as u64)
+                } else {
+                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                    let trunc = u as u64;
+                    if trunc <= u32::MAX as u64 {
+                        Token::IntLitU32(trunc as u32)
+                    } else {
+                        Token::IntLitU64(trunc)
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn parse_dec_int_l_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 10);
+        match parsed {
+            Ok(u) => {
+                if u <= i64::MAX as u128 {
+                    Token::IntLitI64(u as i64)
+                } else {
+                    eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                    let trunc = u as i64;
+                    Token::IntLitI64(trunc)
+                }
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn parse_dec_int_lu_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 10);
+        match parsed {
+            Ok(u) => {
+                if u <= u64::MAX as u128 {
+                    Token::IntLitU64(u as u64)
+                } else {
+                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                    let trunc = u as u64;
+                    Token::IntLitU64(trunc)
+                }
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
                 Token::Unknown(seen)
             }
         }
@@ -170,6 +234,22 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 }
                 (DecInt(seen), None) => {
                     break self.parse_dec_int_no_suffix(seen)
+                }
+                (DecIntU(seen, u), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    DecIntLU(seen, u, String::from(c))
+                }
+                (DecIntU(mut seen, u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9'))) => {
+                    self.numeric.next();
+                    seen += &u;
+                    seen.push(c);
+                    Unkn(seen)
+                }
+                (DecIntU(seen, _), Some(_)) => {
+                    break self.parse_dec_int_u_suffix(seen)
+                }
+                (DecIntU(seen, _), None) => {
+                    break self.parse_dec_int_u_suffix(seen)
                 }
                 (s, c) => {
                     panic!("{}:{}:{} - FATAL - Unhandled inputs: {:?} {:?}", self.location.f(), self.location.l(), self.location.c(), s, c);

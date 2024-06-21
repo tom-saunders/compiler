@@ -66,7 +66,7 @@ fn test_int_literal_dec_u_suffix_min_u32() {
     let input = format!("{}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 2;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -78,7 +78,7 @@ fn test_int_literal_dec_u_suffix_max_u32() {
     let input = format!("{}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -90,7 +90,7 @@ fn test_int_literal_dec_u_suffix_min_u64() {
     let input = format!("{}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -102,7 +102,7 @@ fn test_int_literal_dec_u_suffix_max_u64() {
     let input = format!("{}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -114,7 +114,7 @@ fn test_int_literal_dec_u_suffix_overflow_u64() {
     let input = format!("{}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -127,7 +127,7 @@ fn test_int_literal_dec_U_suffix_min_u32() {
     let input = format!("{}U", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 2;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -140,7 +140,7 @@ fn test_int_literal_dec_U_suffix_max_u32() {
     let input = format!("{}U", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -153,7 +153,7 @@ fn test_int_literal_dec_U_suffix_min_u64() {
     let input = format!("{}U", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -166,7 +166,7 @@ fn test_int_literal_dec_U_suffix_max_u64() {
     let input = format!("{}U", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -179,7 +179,7 @@ fn test_int_literal_dec_U_suffix_overflow_u32() {
     let input = format!("{}U", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
