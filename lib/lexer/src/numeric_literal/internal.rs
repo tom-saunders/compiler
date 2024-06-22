@@ -5,6 +5,7 @@ use std::cell::RefCell;
 use std::iter::Peekable;
 use std::num::ParseIntError;
 use std::str::Chars;
+use std::str::FromStr;
 
 use crate::Token;
 use crate::LocationState;
@@ -251,31 +252,49 @@ impl<'iter> NumericLiteralImpl<'iter> {
     }
 
     fn parse_dec_float_no_suffix(&self, seen: String, e: String, exp: String) -> Token {
-        let value = seen + &e + &exp;
-        Token::Unknown(value)
+        let value = String::from(&seen) + &e + &exp;
+        let parsed = f64::from_str(&value);
+        match parsed {
+            Ok(val) => Token::FloatLit64(val),
+            Err(e) => {
+                eprintln!("{}:{}:{} - warn - unable to convert dec_float to f64: seen:[{}] e:[{}] exp:[{}]", self.location.f(), self.location.l(), self.location.c(), seen, e, exp);
+                Token::Unknown(value)
+            }
+        }
     }
 
     fn parse_dec_float_f_suffix(&self, seen: String, e: String, exp: String, f: String) -> Token {
-        let value = seen + &e + &exp + &f;
-        Token::Unknown(value)
+        let value = String::from(&seen) + &e + &exp;
+        let parsed = f32::from_str(&value);
+        match parsed {
+            Ok(val) => Token::FloatLit32(val),
+            Err(e) => {
+                eprintln!("{}:{}:{} - warn - unable to convert dec_float to f32: seen:[{}] e:[{}] exp:[{}]", self.location.f(), self.location.l(), self.location.c(), seen, e, exp);
+                Token::Unknown(value)
+            }
+        }
     }
 
     fn parse_dec_float_l_suffix(&self, seen: String, e: String, exp: String, l: String) -> Token {
+        eprintln!("{}:{}:{} - warn - unimplemented dec_float_l: seen:[{}] e:[{}] exp:[{}] l[{}]", self.location.f(), self.location.l(), self.location.c(), seen, e, exp, l);
         let value = seen + &e + &exp + &l;
         Token::Unknown(value)
     }
 
     fn parse_hex_float_no_suffix(&self, pre: String, seen: String, p: String, exp: String) -> Token {
+        eprintln!("{}:{}:{} - warn - unimplemented hex_float: pre:[{}] seen:[{}] p:[{}] exp:[{}]", self.location.f(), self.location.l(), self.location.c(), pre, seen, p, exp);
         let value = pre + &seen + &p + &exp;
         Token::Unknown(value)
     }
 
     fn parse_hex_float_f_suffix(&self, pre: String, seen: String, p: String, exp: String, f: String) -> Token {
+        eprintln!("{}:{}:{} - warn - unimplemented hex_float_f: pre:[{}] seen:[{}] p:[{}] exp:[{}] f[{}]", self.location.f(), self.location.l(), self.location.c(), pre, seen, p, exp, f);
         let value = pre + &seen + &p + &exp + &f;
         Token::Unknown(value)
     }
 
     fn parse_hex_float_l_suffix(&self, pre: String, seen: String, p: String, exp: String, l: String) -> Token {
+        eprintln!("{}:{}:{} - warn - unimplemented hex_float_l: pre:[{}] seen:[{}] p:[{}] exp:[{}] l[{}]", self.location.f(), self.location.l(), self.location.c(), pre, seen, p, exp, l);
         let value = pre + &seen + &p + &exp + &l;
         Token::Unknown(value)
     }
@@ -752,7 +771,118 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 (HexIntU(_pre, seen, _u), _) => {
                     break self.parse_hex_int_u_suffix(seen)
                 }
+                (DecFloat(seen), Some(c @ ('0' ..= '9'))) => {
+                    self.numeric.next();
+                    let mut value = seen;
+                    value.push(c);
+                    DecFloat(value)
+                }
+                (DecFloat(seen), Some(c @ ('e' | 'E'))) => {
+                    self.numeric.next();
+                    let e = String::from(c);
+                    DecFloatExp_(seen, e)
+                }
+                (DecFloat(seen), Some(c @ ('f' | 'F'))) => {
+                    self.numeric.next();
+                    let f = String::from(c);
+                    DecFloatF(seen, f)
+                }
+                (DecFloat(seen), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    let l = String::from(c);
+                    DecFloatL(seen, l)
+                }
+                (DecFloat(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    Unkn(seen, suff)
+                }
+                (DecFloat(seen), _) => {
+                    break self.parse_dec_float_no_suffix(seen, "".to_string(), "".to_string())
+                }
+                (InitDot(seen), Some(c @ ('0' ..= '9'))) => {
+                    self.numeric.next();
+                    let mut next = seen;
+                    next.push(c);
+                    DecFloat(next)
+                }
+                (InitDot(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    Unkn(seen, suff)
+                }
+                (DecFloatExp_(seen, e), Some(c @ ('0' ..= '9'))) => {
+                    self.numeric.next();
+                    let exp = String::from(c);
+                    DecFloatExp(seen, e, exp)
+                }
+                (DecFloatExp_(seen, e), Some(c @ ('+' | '-'))) => {
+                    self.numeric.next();
+                    let exp = String::from(c);
+                    DecFloatExpSign(seen, e, exp)
+                }
+                (DecFloatExp(seen, e, exp), Some(c @ ('0' ..= '9'))) => {
+                    self.numeric.next();
+                    let mut next_exp = exp;
+                    next_exp.push(c);
+                    DecFloatExp(seen, e, next_exp)
+                }
+                (DecFloatExp(seen, e, exp), Some(c @ ('f' | 'F'))) => {
+                    self.numeric.next();
+                    let f = String::from(c);
+                    DecFloatExpF(seen, e, exp, f)
+                }
+                (DecFloatExp(seen, e, exp), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    let l = String::from(c);
+                    DecFloatExpF(seen, e, exp, l)
+                }
+                (DecFloatExp(seen, e, exp), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = seen + &e + &exp;
+                    let suff = String::from(c);
+                    Unkn(value, suff)
+                }
+                (DecFloatExp(seen, e, exp), _) => {
+                    break self.parse_dec_float_no_suffix(seen, e, exp)
+                }
+                (DecFloatExpSign(seen, e, exp), Some(c @ ('0' ..= '9'))) => {
+                    self.numeric.next();
+                    let mut next_exp = exp;
+                    next_exp.push(c);
+                    DecFloatExp(seen, e, next_exp)
+                }
+                (DecFloatExpSign(seen, e, exp), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = seen + &e + &exp;
+                    let suff = String::from(c);
+                    Unkn(value, suff)
+                }
+                (DecFloatExpSign(seen, e, exp), unexpect) => {
+                    let value = seen + &e + &exp;
+                    eprintln!("{}:{}:{} - warn - unexpected char after sign in decimal float literal: [{}] + [{:?}]", self.location.f(), self.location.l(), self.location.c(), value, unexpect);
 
+                    break Token::Unknown(value)
+                }
+                (DecFloatF(seen, f), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let mut suff = f;
+                    suff.push(c);
+                    Unkn(seen, suff)
+                }
+                (DecFloatF(seen, f), _ ) => {
+                    break self.parse_dec_float_f_suffix(seen, "".to_string(), "".to_string(), f)
+                }
+                (DecFloatExpF(seen, e, exp, f), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = seen + &e + &exp;
+                    let mut suff = f;
+                    suff.push(c);
+                    Unkn(value, suff)
+                }
+                (DecFloatExpF(seen, e, exp, f), _ ) => {
+                    break self.parse_dec_float_f_suffix(seen, e, exp, f)
+                }
                 (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     suff.push(c);

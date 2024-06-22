@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn test_float_literal_dec_no_suffix_no_exponent() {
     let (exp_t, act_t, act_sz) = exp_f64_and_actual(1.0, "1.0");
-    let exp_sz = 2;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -12,7 +12,7 @@ fn test_float_literal_dec_no_suffix_no_exponent() {
 #[test]
 fn test_float_literal_dec_no_suffix_no_exponent_no_integer() {
     let (exp_t, act_t, act_sz) = exp_f64_and_actual(0.25, ".25");
-    let exp_sz = 2;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -29,8 +29,8 @@ fn test_float_literal_dec_no_suffix_no_exponent_no_fract() {
 
 #[test]
 fn test_float_literal_dec_no_suffix_no_integer() {
-    let (exp_t, act_t, act_sz) = exp_f64_and_actual(0.25, ".25e1");
-    let exp_sz = 2;
+    let (exp_t, act_t, act_sz) = exp_f64_and_actual(0.25, ".25e0");
+    let exp_sz = 5;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -39,7 +39,7 @@ fn test_float_literal_dec_no_suffix_no_integer() {
 #[test]
 fn test_float_literal_dec_no_suffix_no_fract() {
     let (exp_t, act_t, act_sz) = exp_f64_and_actual(1.0, "1e0");
-    let exp_sz = 2;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -48,7 +48,7 @@ fn test_float_literal_dec_no_suffix_no_fract() {
 #[test]
 fn test_float_literal_dec_no_suffix_no_fract_pos() {
     let (exp_t, act_t, act_sz) = exp_f64_and_actual(1.0, "1e+0");
-    let exp_sz = 2;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -57,7 +57,7 @@ fn test_float_literal_dec_no_suffix_no_fract_pos() {
 #[test]
 fn test_float_literal_dec_no_suffix_no_fract_neg() {
     let (exp_t, act_t, act_sz) = exp_f64_and_actual(1.0, "1e-0");
-    let exp_sz = 2;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -66,7 +66,7 @@ fn test_float_literal_dec_no_suffix_no_fract_neg() {
 #[test]
 fn test_float_literal_dec_no_suffix_from_oct() {
     let (exp_t, act_t, act_sz) = exp_f64_and_actual(1.0, "01.");
-    let exp_sz = 2;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -75,7 +75,7 @@ fn test_float_literal_dec_no_suffix_from_oct() {
 #[test]
 fn test_float_literal_dec_f_suffix_no_exponent() {
     let (exp_t, act_t, act_sz) = exp_f32_and_actual(1.0, "1.0f");
-    let exp_sz = 2;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -84,7 +84,7 @@ fn test_float_literal_dec_f_suffix_no_exponent() {
 #[test]
 fn test_float_literal_dec_f_suffix_no_exponent_no_integer() {
     let (exp_t, act_t, act_sz) = exp_f32_and_actual(0.25, ".25f");
-    let exp_sz = 2;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -93,7 +93,7 @@ fn test_float_literal_dec_f_suffix_no_exponent_no_integer() {
 #[test]
 fn test_float_literal_dec_f_suffix_no_exponent_no_fract() {
     let (exp_t, act_t, act_sz) = exp_f32_and_actual(1.0, "1.f");
-    let exp_sz = 2;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -101,8 +101,8 @@ fn test_float_literal_dec_f_suffix_no_exponent_no_fract() {
 
 #[test]
 fn test_float_literal_dec_f_suffix_no_integer() {
-    let (exp_t, act_t, act_sz) = exp_f32_and_actual(0.25, ".25e1f");
-    let exp_sz = 2;
+    let (exp_t, act_t, act_sz) = exp_f32_and_actual(0.25, ".25e0f");
+    let exp_sz = 6;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -111,7 +111,7 @@ fn test_float_literal_dec_f_suffix_no_integer() {
 #[test]
 fn test_float_literal_dec_f_suffix_no_fract() {
     let (exp_t, act_t, act_sz) = exp_f32_and_actual(1.0, "1e0f");
-    let exp_sz = 2;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -120,7 +120,7 @@ fn test_float_literal_dec_f_suffix_no_fract() {
 #[test]
 fn test_float_literal_dec_f_suffix_no_fract_pos() {
     let (exp_t, act_t, act_sz) = exp_f32_and_actual(1.0, "1e+0f");
-    let exp_sz = 2;
+    let exp_sz = 5;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -129,7 +129,7 @@ fn test_float_literal_dec_f_suffix_no_fract_pos() {
 #[test]
 fn test_float_literal_dec_f_suffix_no_fract_neg() {
     let (exp_t, act_t, act_sz) = exp_f32_and_actual(1.0, "1e-0f");
-    let exp_sz = 2;
+    let exp_sz = 5;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -138,7 +138,7 @@ fn test_float_literal_dec_f_suffix_no_fract_neg() {
 #[test]
 fn test_float_literal_dec_f_suffix_from_oct() {
     let (exp_t, act_t, act_sz) = exp_f32_and_actual(1.0, "01.f");
-    let exp_sz = 2;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);

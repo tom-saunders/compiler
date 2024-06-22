@@ -189,7 +189,7 @@ impl Debug for NumericLiteralDebug<f32> {
         let mantissa = as_bits & 0x007f_ffff;
         let exponent = (as_bits & 0x7f80_0000) >> 23;
         let sign = (as_bits & 0x8000_0000) >> 31;
-        write!(f, "{:01b} {:08b} {:023b}", sign, exponent, mantissa)
+        write!(f, "{:01b} {:08b} {:023b} ({:.40e})", sign, exponent, mantissa, self.i)
     }
 }
 
@@ -199,7 +199,7 @@ impl Debug for NumericLiteralDebug<f64> {
         let mantissa = as_bits & 0x000f_ffff_ffff_ffff;
         let exponent = (as_bits & 0x7ff0_0000_0000_0000) >> 52;
         let sign = (as_bits & 0x8000_0000_0000_0000) >> 63;
-        write!(f, "{:01b} {:011b} {:052b}", sign, exponent, mantissa)
+        write!(f, "{:01b} {:011b} {:052b} ({:.111e})", sign, exponent, mantissa, self.i)
     }
 }
 
