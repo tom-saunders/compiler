@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn test_int_literal_hex_no_suffix_min_i32() {
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(0, "0x0");
-    let exp_sz = 1;
+    let exp_sz = 3;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -15,7 +15,7 @@ fn test_int_literal_hex_no_suffix_max_i32() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 10;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -27,7 +27,7 @@ fn test_int_literal_hex_no_suffix_min_u32() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 10;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -39,7 +39,7 @@ fn test_int_literal_hex_no_suffix_max_u32() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 10;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -51,7 +51,7 @@ fn test_int_literal_hex_no_suffix_min_i64() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -63,7 +63,7 @@ fn test_int_literal_hex_no_suffix_max_i64() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 18;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -75,7 +75,7 @@ fn test_int_literal_hex_no_suffix_min_u64() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 18;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -87,7 +87,7 @@ fn test_int_literal_hex_no_suffix_max_u64() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 18;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -99,7 +99,7 @@ fn test_int_literal_hex_no_suffix_overflow_u64() {
     let input = format!("{:#x}", value);
 
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -110,7 +110,7 @@ fn test_int_literal_hex_no_suffix_leading_zeros_i32() {
     let input = "0x0000000000000000000000000000000000000000000000000000000000000000000000000000001";
 
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(1, input);
-    let exp_sz = 1;
+    let exp_sz = 81;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);

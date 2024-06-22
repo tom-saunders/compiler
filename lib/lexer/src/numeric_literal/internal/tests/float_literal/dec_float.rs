@@ -226,16 +226,7 @@ fn test_float_literal_dec_l_suffix_from_oct() {
 
 #[test]
 fn test_float_literal_dec_fl_suffix_rejected() {
-    let (exp_t, act_t, act_sz) = unknown_and_actual("1fl");
-    let exp_sz = 3;
-
-    assert_eq!(exp_t, act_t);
-    assert_eq!(exp_sz, act_sz);
-}
-
-#[test]
-fn test_float_literal_hex_abc_suffix_rejected() {
-    let (exp_t, act_t, act_sz) = unknown_and_actual("1abc");
+    let (exp_t, act_t, act_sz) = unknown_and_actual("1.fl");
     let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
@@ -243,9 +234,18 @@ fn test_float_literal_hex_abc_suffix_rejected() {
 }
 
 #[test]
+fn test_float_literal_hex_abc_suffix_rejected() {
+    let (exp_t, act_t, act_sz) = unknown_and_actual("1.abc");
+    let exp_sz = 5;
+
+    assert_eq!(exp_t, act_t);
+    assert_eq!(exp_sz, act_sz);
+}
+
+#[test]
 fn test_float_literal_hex_f_suffix_dot_rejected() {
-    let (exp_t, act_t, act_sz) = unknown_and_actual("1f.");
-    let exp_sz = 3;
+    let (exp_t, act_t, act_sz) = unknown_and_actual("1.f.");
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);

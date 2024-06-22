@@ -3,6 +3,7 @@ mod tests;
 
 use std::cell::RefCell;
 use std::iter::Peekable;
+use std::num::ParseIntError;
 use std::str::Chars;
 
 use crate::Token;
@@ -127,8 +128,7 @@ impl<'iter> NumericLiteralImpl<'iter> {
         }
     }
 
-    fn parse_oct_int_no_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 8);
+    fn int_hex_or_oct_no_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
         match parsed {
             Ok(u) => {
                 if (u64::MAX as u128) < u {
@@ -152,8 +152,7 @@ impl<'iter> NumericLiteralImpl<'iter> {
         }
     }
 
-    fn parse_oct_int_l_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 8);
+    fn int_hex_or_oct_l_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
         match parsed {
             Ok(u) => {
                 if (u64::MAX as u128) < u {
@@ -174,7 +173,23 @@ impl<'iter> NumericLiteralImpl<'iter> {
         }
     }
 
-    fn parse_oct_int_u_suffix(&self, seen: String) -> Token {        let parsed = u128::from_str_radix(&seen, 8);
+    fn int_hex_or_oct_lu_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
+        match parsed {
+            Ok(u) => {
+                if (u64::MAX as u128) < u {
+                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                }
+                let u = u as u64;
+                Token::IntLitU64(u as u64)
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn int_hex_or_oct_u_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
         match parsed {
             Ok(u) => {
                 if (u64::MAX as u128) < u {
@@ -194,20 +209,45 @@ impl<'iter> NumericLiteralImpl<'iter> {
         }
     }
 
-    fn parse_oct_int_lu_suffix(&self, seen: String) -> Token {        let parsed = u128::from_str_radix(&seen, 8);
-        match parsed {
-            Ok(u) => {
-                if (u64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as u64;
-                Token::IntLitU64(u as u64)
-            }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
-        }
+    fn parse_hex_int_no_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 16);
+        self.int_hex_or_oct_no_suffix(seen, parsed)
+    }
+
+    fn parse_hex_int_l_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 16);
+        self.int_hex_or_oct_l_suffix(seen, parsed)
+    }
+
+    fn parse_hex_int_u_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 16);
+        self.int_hex_or_oct_u_suffix(seen, parsed)
+
+    }
+
+    fn parse_hex_int_lu_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 16);
+        self.int_hex_or_oct_lu_suffix(seen, parsed)
+    }
+
+    fn parse_oct_int_no_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 8);
+        self.int_hex_or_oct_no_suffix(seen, parsed)
+    }
+
+    fn parse_oct_int_l_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 8);
+        self.int_hex_or_oct_l_suffix(seen, parsed)
+    }
+
+    fn parse_oct_int_u_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 8);
+        self.int_hex_or_oct_u_suffix(seen, parsed)
+    }
+
+    fn parse_oct_int_lu_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 8);
+        self.int_hex_or_oct_lu_suffix(seen, parsed)
     }
 }
 
@@ -229,12 +269,12 @@ enum NumericDfa {
     DecIntU(String, String),
     DecIntLU(String, String, String),
     DecIntLLU(String, String, String),
-    HexInt(String),
-    HexIntL(String, String),
-    HexIntLL(String, String),
-    HexIntU(String, String),
-    HexIntLU(String, String, String),
-    HexIntLLU(String, String, String),
+    HexInt(String, String),
+    HexIntL(String, String, String),
+    HexIntLL(String, String, String),
+    HexIntU(String, String, String),
+    HexIntLU(String, String, String, String),
+    HexIntLLU(String, String, String, String),
     DecFloat(String),
     DecFloatF(String, String),
     DecFloatL(String, String),
@@ -243,12 +283,18 @@ enum NumericDfa {
     DecFloatExp(String, String),
     DecFloatExpF(String, String, String),
     DecFloatExpL(String, String, String),
-    HexFloatNoExp(String),
-    HexFloatExp_(String),
-    HexFloatExpSign(String, String),
-    HexFloatExp(String, String),
-    HexFloatExpF(String, String, String),
-    HexFloatExpL(String, String, String),
+    /// prefix seen
+    HexFloatNoExp(String, String),
+    /// prefix seen p
+    HexFloatExp_(String, String, String),
+    /// prefix seen p exp
+    HexFloatExpSign(String, String, String, String),
+    /// prefix seen p exp
+    HexFloatExp(String, String, String, String),
+    /// prefix seen p exp f
+    HexFloatExpF(String, String, String, String, String),
+    /// prefix seen p exp l
+    HexFloatExpL(String, String, String, String, String),
     Unkn(String, String),
 }
 
@@ -296,7 +342,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntU(seen, String::from(c))
                 }
-                (DecInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '_'))) => {
+                (DecInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_'))) => {
                     self.numeric.next();
                     let suff = String::from(c);
                     Unkn(seen, suff)
@@ -318,7 +364,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLU(seen, l, String::from(c))
                 }
-                (DecIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (DecIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     l.push(c);
                     Unkn(seen, l)
@@ -330,7 +376,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLLU(seen, ll, String::from(c))
                 }
-                (DecIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (DecIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     ll.push(c);
                     Unkn(seen, ll)
@@ -338,7 +384,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 (DecIntLL(seen, _), _) => {
                     break self.parse_dec_int_l_suffix(seen)
                 }
-                (DecIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (DecIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     first += &second;
                     first.push(c);
@@ -358,7 +404,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                         Unkn(seen, first)
                     }
                 }
-                (DecIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (DecIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     first += &second;
                     first.push(c);
@@ -371,7 +417,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     DecIntLU(seen, u, String::from(c))
                 }
-                (DecIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (DecIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     u.push(c);
                     Unkn(seen, u)
@@ -409,7 +455,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     seen.push(c);
                     InitZeroX(seen)
                 }
-                (InitZero(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A'))) => {
+                (InitZero(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z'))) => {
                     self.numeric.next();
                     let suff = String::from(c);
                     Unkn(seen, suff)
@@ -442,7 +488,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     let suff = String::from(c);
                     OctIntU(seen, suff)
                 }
-                (OctInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A'))) => {
+                (OctInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z'))) => {
                     self.numeric.next();
                     let suff = String::from(c);
                     Unkn(seen, suff)
@@ -464,7 +510,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     OctIntLU(seen, l, String::from(c))
                 }
-                (OctIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (OctIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     l.push(c);
                     Unkn(seen, l)
@@ -476,7 +522,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     OctIntLLU(seen, ll, String::from(c))
                 }
-                (OctIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (OctIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     ll.push(c);
                     Unkn(seen, ll)
@@ -484,7 +530,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 (OctIntLL(seen, _), _) => {
                     break self.parse_oct_int_l_suffix(seen)
                 }
-                (OctIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (OctIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     first += &second;
                     first.push(c);
@@ -504,7 +550,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                         Unkn(seen, first)
                     }
                 }
-                (OctIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (OctIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     first += &second;
                     first.push(c);
@@ -517,7 +563,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     self.numeric.next();
                     OctIntLU(seen, u, String::from(c))
                 }
-                (OctIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (OctIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     u.push(c);
                     Unkn(seen, u)
@@ -525,8 +571,58 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 (OctIntU(seen, _), _) => {
                     break self.parse_oct_int_u_suffix(seen)
                 }
-
-                (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                (InitZeroX(prefix), Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F'))) => {
+                    self.numeric.next();
+                    let seen = String::from(c);
+                    HexInt(prefix, seen)
+                }
+                (InitZeroX(prefix), Some(c @ '.')) => {
+                    self.numeric.next();
+                    let seen = String::from(c);
+                    HexFloatNoExp(prefix, seen)
+                }
+                (InitZeroX(prefix), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' ))) => {
+                    self.numeric.next();
+                    let seen = prefix[..1].to_string();
+                    let mut suff = prefix[1..].to_string();
+                    suff.push(c);
+                    Unkn(seen, suff)
+                }
+                (HexInt(pre, mut seen), Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    HexInt(pre, seen)
+                }
+                (HexInt(pre, mut seen), Some(c @ '.')) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    HexFloatNoExp(pre, seen)
+                }
+                (HexInt(pre, seen), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    let l = String::from(c);
+                    HexIntL(pre, seen, l)
+                }
+                (HexInt(pre, seen), Some(c @ ('p' | 'p'))) => {
+                    self.numeric.next();
+                    let p = String::from(c);
+                    HexFloatExp_(pre, seen, p)
+                }
+                (HexInt(pre, seen), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    let u = String::from(c);
+                    HexIntU(pre, seen, u)
+                }
+                (HexInt(pre, seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    let val = pre + &seen;
+                    Unkn(val, suff)
+                }
+                (HexInt(pre, seen), _) => {
+                    break self.parse_hex_int_no_suffix(seen);
+                }
+                (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     suff.push(c);
                     Unkn(seen, suff)
