@@ -285,12 +285,12 @@ fn test_int_literal_hex_l_suffix_min_i64() {
 }
 
 #[test]
-fn test_int_literal_hex_l_suffix_max_i64() {
-    let value = i64::MAX;
+fn test_int_literal_hex_l_suffix_max_i64_is_u64() {
+    let value = i64::MAX as u64;
     let input = format!("{:#x}u", value);
 
-    let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
