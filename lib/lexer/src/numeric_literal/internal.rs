@@ -54,18 +54,14 @@ impl<'iter> NumericLiteralImpl<'iter> {
         let parsed = u128::from_str_radix(&seen, 10);
         match parsed {
             Ok(u) => {
-                if u <= i32::MAX as u128 {
-                    Token::IntLitI32(u as i32)
-                } else if u <= i64::MAX as u128 {
-                    Token::IntLitI64(u as i64)
-                } else {
+                if (i64::MAX as u128) < u {
                     eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                    let trunc = u as i64;
-                    if (i32::MIN as i64) <= trunc && trunc <= (i32::MAX as i64) {
-                        Token::IntLitI32(trunc as i32)
-                    } else {
-                        Token::IntLitI64(trunc)
-                    }
+                }
+                let u = u as i64;
+                if (i32::MIN as i64 <= u) && (u <= i32::MAX as i64) {
+                    Token::IntLitI32(u as i32)
+                } else {
+                    Token::IntLitI64(u)
                 }
             }
             Err(e) => {
@@ -79,18 +75,15 @@ impl<'iter> NumericLiteralImpl<'iter> {
         let parsed = u128::from_str_radix(&seen, 10);
         match parsed {
             Ok(u) => {
-                if u <= u32::MAX as u128 {
-                    Token::IntLitU32(u as u32)
-                } else if u <= u64::MAX as u128 {
-                    Token::IntLitU64(u as u64)
-                } else {
+                if (u64::MAX as u128) < u {
                     eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                    let trunc = u as u64;
-                    if trunc <= u32::MAX as u64 {
-                        Token::IntLitU32(trunc as u32)
-                    } else {
-                        Token::IntLitU64(trunc)
-                    }
+                }
+                let u = u as u64;
+
+                if u <= u32::MAX as u64 {
+                    Token::IntLitU32(u as u32)
+                } else{
+                    Token::IntLitU64(u as u64)
                 }
             }
             Err(e) => {
@@ -104,13 +97,11 @@ impl<'iter> NumericLiteralImpl<'iter> {
         let parsed = u128::from_str_radix(&seen, 10);
         match parsed {
             Ok(u) => {
-                if u <= i64::MAX as u128 {
-                    Token::IntLitI64(u as i64)
-                } else {
+                if (i64::MAX as u128) < u {
                     eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                    let trunc = u as i64;
-                    Token::IntLitI64(trunc)
                 }
+                let u = u as i64;
+                Token::IntLitI64(u as i64)
             }
             Err(e) => {
                 eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
@@ -123,13 +114,94 @@ impl<'iter> NumericLiteralImpl<'iter> {
         let parsed = u128::from_str_radix(&seen, 10);
         match parsed {
             Ok(u) => {
-                if u <= u64::MAX as u128 {
-                    Token::IntLitU64(u as u64)
-                } else {
+                if (u64::MAX as u128) < u {
                     eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                    let trunc = u as u64;
-                    Token::IntLitU64(trunc)
                 }
+                let u = u as u64;
+                Token::IntLitU64(u)
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn parse_oct_int_no_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 8);
+        match parsed {
+            Ok(u) => {
+                if (u64::MAX as u128) < u {
+                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                }
+                let u = u as u64;
+                if u <= i32::MAX as u64 {
+                    Token::IntLitI32(u as i32)
+                } else if u <= u32::MAX as u64 {
+                    Token::IntLitU32(u as u32)
+                } else if u <= i64::MAX as u64 {
+                    Token::IntLitI64(u as i64)
+                } else {
+                    Token::IntLitU64(u as u64)
+                }
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn parse_oct_int_l_suffix(&self, seen: String) -> Token {
+        let parsed = u128::from_str_radix(&seen, 8);
+        match parsed {
+            Ok(u) => {
+                if (u64::MAX as u128) < u {
+                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                }
+                let u = u as u64;
+
+                if u <= i64::MAX as u64 {
+                    Token::IntLitI64(u as i64)
+                } else {
+                    Token::IntLitU64(u)
+                }
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn parse_oct_int_u_suffix(&self, seen: String) -> Token {        let parsed = u128::from_str_radix(&seen, 8);
+        match parsed {
+            Ok(u) => {
+                if (u64::MAX as u128) < u {
+                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                }
+                let u = u as u64;
+                if u <= u32::MAX as u64 {
+                    Token::IntLitU32(u as u32)
+                } else {
+                    Token::IntLitU64(u)
+                }
+            }
+            Err(e) => {
+                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
+                Token::Unknown(seen)
+            }
+        }
+    }
+
+    fn parse_oct_int_lu_suffix(&self, seen: String) -> Token {        let parsed = u128::from_str_radix(&seen, 8);
+        match parsed {
+            Ok(u) => {
+                if (u64::MAX as u128) < u {
+                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
+                }
+                let u = u as u64;
+                Token::IntLitU64(u as u64)
             }
             Err(e) => {
                 eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
@@ -194,7 +266,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
             }
             Some('.') => {
                 self.numeric.next();
-                NumericDfa::InitDot(".".to_string())
+                InitDot(".".to_string())
             }
             _ => panic!("{}:{}:{} - FATAL - this isn't a numeric literal", self.location.f(), self.location.l(), self.location.c()),
         };
@@ -306,6 +378,77 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 }
                 (DecIntU(seen, _), _) => {
                     break self.parse_dec_int_u_suffix(seen)
+                }
+                (InitZero(mut seen), Some(c @ ('0' ..= '7'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    OctInt(seen)
+                }
+                (InitZero(mut seen), Some(c @ ('8' | '9'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    OctDecInt(seen)
+                }
+                (InitZero(mut seen), Some(c @ '.')) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    DecFloat(seen)
+                }
+                (InitZero( seen), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    OctIntL(seen, suff)
+                }
+                (InitZero( seen), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    OctIntU(seen, suff)
+                }
+                (InitZero(mut seen), Some(c @ ('x' | 'X'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    InitZeroX(seen)
+                }
+                (InitZero(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    Unkn(seen, suff)
+                }
+                (InitZero(seen), _) => {
+                    break self.parse_oct_int_no_suffix(seen)
+                }
+                (OctInt(mut seen), Some(c @ ('0' ..= '7'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    OctInt(seen)
+                }
+                (OctInt(mut seen), Some(c @ ('8' | '9'))) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    OctDecInt(seen)
+                }
+                (OctInt(mut seen), Some(c @ '.')) => {
+                    self.numeric.next();
+                    seen.push(c);
+                    DecFloat(seen)
+                }
+                (OctInt( seen), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    OctIntL(seen, suff)
+                }
+                (OctInt( seen), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    OctIntU(seen, suff)
+                }
+                (OctInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'A'))) => {
+                    self.numeric.next();
+                    let suff = String::from(c);
+                    Unkn(seen, suff)
+                }
+                (OctInt(seen), _) => {
+                    break self.parse_oct_int_no_suffix(seen)
                 }
                 (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();

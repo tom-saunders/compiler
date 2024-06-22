@@ -22,7 +22,7 @@ fn test_int_literal_oct_no_suffix_max_i32() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -36,7 +36,7 @@ fn test_int_literal_oct_no_suffix_min_u32() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -50,7 +50,7 @@ fn test_int_literal_oct_no_suffix_max_u32() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -64,7 +64,7 @@ fn test_int_literal_oct_no_suffix_min_i64() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -78,7 +78,7 @@ fn test_int_literal_oct_no_suffix_max_i64() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 22;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -92,7 +92,7 @@ fn test_int_literal_oct_no_suffix_min_u64() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 23;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -106,7 +106,7 @@ fn test_int_literal_oct_no_suffix_max_u64() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 23;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -120,7 +120,7 @@ fn test_int_literal_oct_no_suffix_overflow_u64() {
     let input = format!("0{:o}", value);
 
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 23;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -131,7 +131,7 @@ fn test_int_literal_oct_no_suffix_leading_zeros_i32() {
     let input = "00000000000000000000000000000000000000000000000000000000000000000000000000000001";
 
     let (exp_t, act_t, act_sz) = exp_i32_and_actual(1, input);
-    let exp_sz = 1;
+    let exp_sz = 80;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
