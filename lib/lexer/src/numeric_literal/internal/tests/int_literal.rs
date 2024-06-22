@@ -56,13 +56,13 @@ fn exp_u64_and_actual(v: u64, input: &str) -> (Token, Token, usize) {
 }
 
 #[test]
-#[should_panic(expected = "TEST:1:1 - FATAL - not a numeric literal")]
+#[should_panic(expected = "TEST:1:1 - FATAL - this isn't a numeric literal")]
 fn test_int_literal_empty() {
     actual("");
 }
 
 #[test]
-#[should_panic(expected = "TEST:1:1 - FATAL - not a numeric literal")]
+#[should_panic(expected = "TEST:1:1 - FATAL - this isn't a numeric literal")]
 fn test_int_literal_nondigit() {
     actual("a");
 }
