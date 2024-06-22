@@ -122,7 +122,7 @@ fn test_int_literal_hex_u_suffix_min_i32_is_u32() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -134,7 +134,7 @@ fn test_int_literal_hex_u_suffix_max_i32_is_u32() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -146,7 +146,7 @@ fn test_int_literal_hex_u_suffix_min_u32() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -158,7 +158,7 @@ fn test_int_literal_hex_u_suffix_max_u32() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -170,7 +170,7 @@ fn test_int_literal_hex_u_suffix_min_i64_is_u64() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -182,7 +182,7 @@ fn test_int_literal_hex_u_suffix_max_i64_is_u64() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -194,7 +194,7 @@ fn test_int_literal_hex_u_suffix_min_u64() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -206,7 +206,7 @@ fn test_int_literal_hex_u_suffix_max_u64() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -218,7 +218,7 @@ fn test_int_literal_hex_u_suffix_overflow_u64_is_u32() {
     let input = format!("{:#x}u", value);
 
     let (exp_t, act_t, act_sz) = exp_u32_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 20;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -230,7 +230,7 @@ fn test_int_literal_hex_l_suffix_min_i32_is_i64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -242,7 +242,7 @@ fn test_int_literal_hex_l_suffix_max_i32_is_i64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -254,7 +254,7 @@ fn test_int_literal_hex_l_suffix_min_u32_is_i64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -266,7 +266,7 @@ fn test_int_literal_hex_l_suffix_max_u32_is_i64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 11;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -278,7 +278,7 @@ fn test_int_literal_hex_l_suffix_min_i64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -302,7 +302,7 @@ fn test_int_literal_hex_l_suffix_min_u64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -314,7 +314,7 @@ fn test_int_literal_hex_l_suffix_max_u64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 19;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -326,7 +326,7 @@ fn test_int_literal_hex_l_suffix_overflow_u64_is_u64() {
     let input = format!("{:#x}l", value);
 
     let (exp_t, act_t, act_sz) = exp_i64_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 20;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -338,7 +338,7 @@ fn test_int_literal_hex_ul_suffix_min_i32_is_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 5;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -350,7 +350,7 @@ fn test_int_literal_hex_ul_suffix_max_i32_is_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -362,7 +362,7 @@ fn test_int_literal_hex_ul_suffix_min_u32_is_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -374,7 +374,7 @@ fn test_int_literal_hex_ul_suffix_max_u32_is_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 12;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -386,7 +386,7 @@ fn test_int_literal_hex_ul_suffix_min_i64_is_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 13;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -398,7 +398,7 @@ fn test_int_literal_hex_ul_suffix_max_i64_is_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 20;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -410,7 +410,7 @@ fn test_int_literal_hex_ul_suffix_min_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 20;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -422,7 +422,7 @@ fn test_int_literal_hex_ul_suffix_max_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(value, &input);
-    let exp_sz = 1;
+    let exp_sz = 20;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -434,7 +434,7 @@ fn test_int_literal_hex_ul_suffix_overflow_u64_is_u64() {
     let input = format!("{:#x}ul", value);
 
     let (exp_t, act_t, act_sz) = exp_u64_and_actual(0, &input);
-    let exp_sz = 1;
+    let exp_sz = 21;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);

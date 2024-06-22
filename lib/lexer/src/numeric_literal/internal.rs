@@ -269,11 +269,17 @@ enum NumericDfa {
     DecIntU(String, String),
     DecIntLU(String, String, String),
     DecIntLLU(String, String, String),
+    /// prefix seen
     HexInt(String, String),
+    /// prefix seen l
     HexIntL(String, String, String),
+    /// prefix seen ll
     HexIntLL(String, String, String),
+    /// prefix seen u
     HexIntU(String, String, String),
+    /// prefix seen first second
     HexIntLU(String, String, String, String),
+    /// prefix seen first second
     HexIntLLU(String, String, String, String),
     DecFloat(String),
     DecFloatF(String, String),
@@ -603,7 +609,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     let l = String::from(c);
                     HexIntL(pre, seen, l)
                 }
-                (HexInt(pre, seen), Some(c @ ('p' | 'p'))) => {
+                (HexInt(pre, seen), Some(c @ ('p' | 'P'))) => {
                     self.numeric.next();
                     let p = String::from(c);
                     HexFloatExp_(pre, seen, p)
@@ -619,9 +625,95 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     let val = pre + &seen;
                     Unkn(val, suff)
                 }
-                (HexInt(pre, seen), _) => {
+                (HexInt(_pre, seen), _) => {
                     break self.parse_hex_int_no_suffix(seen);
                 }
+                (HexIntL(pre, seen, l), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    if l.chars().next().expect("l should never be an empty string") == c {
+                        let mut ll = l;
+                        ll.push(c);
+                        HexIntLL(pre, seen, ll)
+                    } else {
+                        let val = pre + &seen;
+                        let mut suff = l;
+                        suff.push(c);
+                        Unkn(val, suff)
+                    }
+                }
+                (HexIntL(pre, seen, l), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    HexIntLU(pre, seen, l, String::from(c))
+                }
+                (HexIntL(pre, seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    l.push(c);
+                    let value = pre + &seen;
+                    Unkn(value, l)
+                }
+                (HexIntL(_pre, seen, _l), _) => {
+                    break self.parse_hex_int_l_suffix(seen)
+                }
+                (HexIntLL(pre, seen, ll), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    HexIntLLU(pre, seen, ll, String::from(c))
+                }
+                (HexIntLL(pre, seen, ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = pre + &seen;
+                    let mut suff = ll;
+                    suff.push(c);
+                    Unkn(value, suff)
+                }
+                (HexIntLL(_pre, seen, _ll), _) => {
+                    break self.parse_hex_int_l_suffix(seen)
+                }
+                (HexIntLLU(pre, seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = pre + &seen;
+                    let mut suff = first + &second;
+                    suff.push(c);
+                    Unkn(value, suff)
+                }
+                (HexIntLLU(_pre, seen, _first, _second), _) => {
+                    break self.parse_oct_int_lu_suffix(seen)
+                }
+                (HexIntLU(pre, seen, first, mut second), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    if second.chars().next().expect("second should never be an empty string") == c {
+                        second.push(c);
+                        HexIntLLU(pre, seen, first, second)
+                    } else {
+                        let value = pre + &seen;
+                        let suff = first + &second;
+                        Unkn(value, suff)
+                    }
+                }
+                (HexIntLU(pre, seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = pre + &seen;
+                    let mut suff = first + &second;
+                    suff.push(c);
+                    Unkn(value, suff)
+                }
+                (HexIntLU(_pre, seen, _first, _second), _) => {
+                    break self.parse_hex_int_lu_suffix(seen)
+                }
+                (HexIntU(pre, seen, u), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    HexIntLU(pre, seen, u, String::from(c))
+                }
+                (HexIntU(pre, seen, u), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = pre + &seen;
+                    let mut suff = u;
+                    suff.push(c);
+                    Unkn(value, suff)
+                }
+                (HexIntU(_pre, seen, _u), _) => {
+                    break self.parse_hex_int_u_suffix(seen)
+                }
+
                 (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     suff.push(c);
