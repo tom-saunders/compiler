@@ -249,6 +249,37 @@ impl<'iter> NumericLiteralImpl<'iter> {
         let parsed = u128::from_str_radix(&seen, 8);
         self.int_hex_or_oct_lu_suffix(seen, parsed)
     }
+
+    fn parse_dec_float_no_suffix(&self, seen: String, e: String, exp: String) -> Token {
+        let value = seen + &e + &exp;
+        Token::Unknown(value)
+    }
+
+    fn parse_dec_float_f_suffix(&self, seen: String, e: String, exp: String, f: String) -> Token {
+        let value = seen + &e + &exp + &f;
+        Token::Unknown(value)
+    }
+
+    fn parse_dec_float_l_suffix(&self, seen: String, e: String, exp: String, l: String) -> Token {
+        let value = seen + &e + &exp + &l;
+        Token::Unknown(value)
+    }
+
+    fn parse_hex_float_no_suffix(&self, pre: String, seen: String, p: String, exp: String) -> Token {
+        let value = pre + &seen + &p + &exp;
+        Token::Unknown(value)
+    }
+
+    fn parse_hex_float_f_suffix(&self, pre: String, seen: String, p: String, exp: String, f: String) -> Token {
+        let value = pre + &seen + &p + &exp + &f;
+        Token::Unknown(value)
+    }
+
+    fn parse_hex_float_l_suffix(&self, pre: String, seen: String, p: String, exp: String, l: String) -> Token {
+        let value = pre + &seen + &p + &exp + &l;
+        Token::Unknown(value)
+    }
+
 }
 
 #[derive(Debug)]
@@ -281,14 +312,22 @@ enum NumericDfa {
     HexIntLU(String, String, String, String),
     /// prefix seen first second
     HexIntLLU(String, String, String, String),
+    // seen
     DecFloat(String),
+    // seen f
     DecFloatF(String, String),
+    // seen l
     DecFloatL(String, String),
-    DecFloatExp_(String),
-    DecFloatExpSign(String, String),
-    DecFloatExp(String, String),
-    DecFloatExpF(String, String, String),
-    DecFloatExpL(String, String, String),
+    // seen e
+    DecFloatExp_(String, String),
+    // seen e exp
+    DecFloatExpSign(String, String, String),
+    // seen e exp
+    DecFloatExp(String, String, String),
+    // seen e exp f
+    DecFloatExpF(String, String, String, String),
+    // seen e exp l
+    DecFloatExpL(String, String, String, String),
     /// prefix seen
     HexFloatNoExp(String, String),
     /// prefix seen p
@@ -335,10 +374,10 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                     seen.push(c);
                     DecFloat(seen)
                 }
-                (DecInt(mut seen), Some(c @ ('e' | 'E'))) => {
+                (DecInt(seen), Some(c @ ('e' | 'E'))) => {
                     self.numeric.next();
-                    seen.push(c);
-                    DecFloatExp_(seen)
+                    let e = String::from(c);
+                    DecFloatExp_(seen, e)
                 }
                 (DecInt(seen), Some(c @ ('l' | 'L'))) => {
                     self.numeric.next();
