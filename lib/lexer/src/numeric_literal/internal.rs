@@ -450,6 +450,82 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 (OctInt(seen), _) => {
                     break self.parse_oct_int_no_suffix(seen)
                 }
+                (OctIntL(seen, mut l), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    if l.chars().next().expect("l should never be an empty string") == c {
+                        l.push(c);
+                        OctIntLL(seen, l)
+                    } else {
+                        l.push(c);
+                        Unkn(seen, l)
+                    }
+                }
+                (OctIntL(seen, l), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    OctIntLU(seen, l, String::from(c))
+                }
+                (OctIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    l.push(c);
+                    Unkn(seen, l)
+                }
+                (OctIntL(seen, _), _) => {
+                    break self.parse_oct_int_l_suffix(seen)
+                }
+                (OctIntLL(seen, ll), Some(c @ ('u' | 'U'))) => {
+                    self.numeric.next();
+                    OctIntLLU(seen, ll, String::from(c))
+                }
+                (OctIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    ll.push(c);
+                    Unkn(seen, ll)
+                }
+                (OctIntLL(seen, _), _) => {
+                    break self.parse_oct_int_l_suffix(seen)
+                }
+                (OctIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    first += &second;
+                    first.push(c);
+                    Unkn(seen, first)
+                }
+                (OctIntLLU(seen, _, _), _) => {
+                    break self.parse_oct_int_lu_suffix(seen)
+                }
+                (OctIntLU(seen, mut first, mut second), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    if second.chars().next().expect("second should never be an empty string") == c {
+                        second.push(c);
+                        OctIntLLU(seen, first, second)
+                    } else {
+                        first += &second;
+                        first.push(c);
+                        Unkn(seen, first)
+                    }
+                }
+                (OctIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    first += &second;
+                    first.push(c);
+                    Unkn(seen, first)
+                }
+                (OctIntLU(seen, _, _), _) => {
+                    break self.parse_oct_int_lu_suffix(seen)
+                }
+                (OctIntU(seen, u), Some(c @ ('l' | 'L'))) => {
+                    self.numeric.next();
+                    OctIntLU(seen, u, String::from(c))
+                }
+                (OctIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    u.push(c);
+                    Unkn(seen, u)
+                }
+                (OctIntU(seen, _), _) => {
+                    break self.parse_oct_int_u_suffix(seen)
+                }
+
                 (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'A' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
                     suff.push(c);
