@@ -835,7 +835,7 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 (DecFloatExp(seen, e, exp), Some(c @ ('l' | 'L'))) => {
                     self.numeric.next();
                     let l = String::from(c);
-                    DecFloatExpF(seen, e, exp, l)
+                    DecFloatExpL(seen, e, exp, l)
                 }
                 (DecFloatExp(seen, e, exp), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
                     self.numeric.next();
@@ -882,6 +882,25 @@ impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
                 }
                 (DecFloatExpF(seen, e, exp, f), _ ) => {
                     break self.parse_dec_float_f_suffix(seen, e, exp, f)
+                }
+                (DecFloatL(seen, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let mut suff = l;
+                    suff.push(c);
+                    Unkn(seen, suff)
+                }
+                (DecFloatL(seen, l), _ ) => {
+                    break self.parse_dec_float_l_suffix(seen, "".to_string(), "".to_string(), l)
+                }
+                (DecFloatExpL(seen, e, exp, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
+                    self.numeric.next();
+                    let value = seen + &e + &exp;
+                    let mut suff = l;
+                    suff.push(c);
+                    Unkn(value, suff)
+                }
+                (DecFloatExpL(seen, e, exp, l), _ ) => {
+                    break self.parse_dec_float_l_suffix(seen, e, exp, l)
                 }
                 (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
                     self.numeric.next();
