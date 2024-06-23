@@ -2,6 +2,7 @@
 mod tests;
 
 use std::cell::RefCell;
+use std::fmt::Debug;
 use std::iter::Peekable;
 use std::num::ParseIntError;
 use std::str::Chars;
@@ -42,6 +43,7 @@ pub fn numeric_state_impl<'iter>(
 struct NumericLiteralImpl<'iter> {
     location: &'iter dyn LocationState,
     numeric: &'iter dyn NumericState,
+    debug: bool,
 }
 
 impl<'iter> NumericLiteralImpl<'iter> {
@@ -49,873 +51,1316 @@ impl<'iter> NumericLiteralImpl<'iter> {
         location: &'iter dyn LocationState,
         numeric: &'iter dyn NumericState,
     ) -> NumericLiteralImpl<'iter> {
-        NumericLiteralImpl{location, numeric}
+        NumericLiteralImpl{location, numeric, debug: true}
     }
+}
 
-    fn parse_dec_int_no_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 10);
-        match parsed {
-            Ok(u) => {
-                if (i64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as i64;
-                if (i32::MIN as i64 <= u) && (u <= i32::MAX as i64) {
-                    Token::IntLitI32(u as i32)
-                } else {
-                    Token::IntLitI64(u)
-                }
+fn parse_dec_int_no_suffix(loc: &dyn LocationState, seen: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 10);
+    match parsed {
+        Ok(u) => {
+            println!("parsed ok: {u}");
+            if (i64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", loc.f(), loc.l(), loc.c());
             }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
+            let u = u as i64;
+            if (i32::MIN as i64 <= u) && (u <= i32::MAX as i64) {
+                println!("IntLitI32 as {} <= {} <= {}", i32::MIN, u, i32::MAX);
+                Token::IntLitI32(u as i32)
+            } else {
+                println!("IntLitI64 as {} < {} || {} < {}", u, i32::MIN, i32::MAX, u);
+                Token::IntLitI64(u)
             }
         }
-    }
-
-    fn parse_dec_int_u_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 10);
-        match parsed {
-            Ok(u) => {
-                if (u64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as u64;
-
-                if u <= u32::MAX as u64 {
-                    Token::IntLitU32(u as u32)
-                } else{
-                    Token::IntLitU64(u as u64)
-                }
-            }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            Token::Unknown(seen.to_string())
         }
     }
+}
 
-    fn parse_dec_int_l_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 10);
-        match parsed {
-            Ok(u) => {
-                if (i64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as i64;
-                Token::IntLitI64(u as i64)
+fn parse_dec_int_u_suffix(loc: &dyn LocationState, seen: &str, u: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 10);
+    match parsed {
+        Ok(u) => {
+            if (u64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", loc.f(), loc.l(), loc.c());
             }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
-        }
-    }
+            let u = u as u64;
 
-    fn parse_dec_int_lu_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 10);
-        match parsed {
-            Ok(u) => {
-                if (u64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as u64;
-                Token::IntLitU64(u)
-            }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
-        }
-    }
-
-    fn int_hex_or_oct_no_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
-        match parsed {
-            Ok(u) => {
-                if (u64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as u64;
-                if u <= i32::MAX as u64 {
-                    Token::IntLitI32(u as i32)
-                } else if u <= u32::MAX as u64 {
-                    Token::IntLitU32(u as u32)
-                } else if u <= i64::MAX as u64 {
-                    Token::IntLitI64(u as i64)
-                } else {
-                    Token::IntLitU64(u as u64)
-                }
-            }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
-        }
-    }
-
-    fn int_hex_or_oct_l_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
-        match parsed {
-            Ok(u) => {
-                if (u64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as u64;
-
-                if u <= i64::MAX as u64 {
-                    Token::IntLitI64(u as i64)
-                } else {
-                    Token::IntLitU64(u)
-                }
-            }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
-        }
-    }
-
-    fn int_hex_or_oct_lu_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
-        match parsed {
-            Ok(u) => {
-                if (u64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as u64;
+            if u <= u32::MAX as u64 {
+                Token::IntLitU32(u as u32)
+            } else{
                 Token::IntLitU64(u as u64)
             }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
+        }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            let value = seen.to_string() + u;
+            Token::Unknown(value)
         }
     }
+}
 
-    fn int_hex_or_oct_u_suffix(&self, seen: String, parsed: Result<u128, ParseIntError>) -> Token {
-        match parsed {
-            Ok(u) => {
-                if (u64::MAX as u128) < u {
-                    eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", self.location.f(), self.location.l(), self.location.c());
-                }
-                let u = u as u64;
-                if u <= u32::MAX as u64 {
-                    Token::IntLitU32(u as u32)
-                } else {
-                    Token::IntLitU64(u)
-                }
+fn parse_dec_int_l_suffix(loc: &dyn LocationState, seen: &str, l: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 10);
+    match parsed {
+        Ok(u) => {
+            if (i64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of i64 will be truncated", loc.f(), loc.l(), loc.c());
             }
-            Err(e) => {
-                eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", self.location.f(), self.location.l(), self.location.c(), seen, e);
-                Token::Unknown(seen)
-            }
+            let u = u as i64;
+            Token::IntLitI64(u as i64)
+        }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            let value = seen.to_string() + l;
+            Token::Unknown(value)
         }
     }
+}
 
-    fn parse_hex_int_no_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 16);
-        self.int_hex_or_oct_no_suffix(seen, parsed)
-    }
-
-    fn parse_hex_int_l_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 16);
-        self.int_hex_or_oct_l_suffix(seen, parsed)
-    }
-
-    fn parse_hex_int_u_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 16);
-        self.int_hex_or_oct_u_suffix(seen, parsed)
-
-    }
-
-    fn parse_hex_int_lu_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 16);
-        self.int_hex_or_oct_lu_suffix(seen, parsed)
-    }
-
-    fn parse_oct_int_no_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 8);
-        self.int_hex_or_oct_no_suffix(seen, parsed)
-    }
-
-    fn parse_oct_int_l_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 8);
-        self.int_hex_or_oct_l_suffix(seen, parsed)
-    }
-
-    fn parse_oct_int_u_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 8);
-        self.int_hex_or_oct_u_suffix(seen, parsed)
-    }
-
-    fn parse_oct_int_lu_suffix(&self, seen: String) -> Token {
-        let parsed = u128::from_str_radix(&seen, 8);
-        self.int_hex_or_oct_lu_suffix(seen, parsed)
-    }
-
-    fn parse_dec_float_no_suffix(&self, seen: String, e: String, exp: String) -> Token {
-        let value = String::from(&seen) + &e + &exp;
-        let parsed = f64::from_str(&value);
-        match parsed {
-            Ok(val) => Token::FloatLit64(val),
-            Err(e) => {
-                eprintln!("{}:{}:{} - warn - unable to convert dec_float to f64: seen:[{}] e:[{}] exp:[{}]", self.location.f(), self.location.l(), self.location.c(), seen, e, exp);
-                Token::Unknown(value)
+fn parse_dec_int_lu_suffix(loc: &dyn LocationState, seen: &str, suff_1: &str, suff_2: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 10);
+    match parsed {
+        Ok(u) => {
+            if (u64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", loc.f(), loc.l(), loc.c());
             }
+            let u = u as u64;
+            Token::IntLitU64(u)
+        }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            let value = seen.to_string() + suff_1 + suff_1;
+            Token::Unknown(value)
         }
     }
+}
 
-    fn parse_dec_float_f_suffix(&self, seen: String, e: String, exp: String, f: String) -> Token {
-        let value = String::from(&seen) + &e + &exp;
-        let parsed = f32::from_str(&value);
-        match parsed {
-            Ok(val) => Token::FloatLit32(val),
-            Err(e) => {
-                eprintln!("{}:{}:{} - warn - unable to convert dec_float to f32: seen:[{}] e:[{}] exp:[{}]", self.location.f(), self.location.l(), self.location.c(), seen, e, exp);
-                Token::Unknown(value)
+fn int_hex_or_oct_no_suffix(loc: &dyn LocationState, pre: &str, seen: &str, parsed: Result<u128, ParseIntError>) -> Token {
+    match parsed {
+        Ok(u) => {
+            if (u64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", loc.f(), loc.l(), loc.c());
+            }
+            let u = u as u64;
+            if u <= i32::MAX as u64 {
+                Token::IntLitI32(u as i32)
+            } else if u <= u32::MAX as u64 {
+                Token::IntLitU32(u as u32)
+            } else if u <= i64::MAX as u64 {
+                Token::IntLitI64(u as i64)
+            } else {
+                Token::IntLitU64(u as u64)
             }
         }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            let value = pre.to_string() + seen;
+            Token::Unknown(value)
+        }
     }
+}
 
-    fn parse_dec_float_l_suffix(&self, seen: String, e: String, exp: String, l: String) -> Token {
-        eprintln!("{}:{}:{} - warn - unimplemented dec_float_l: seen:[{}] e:[{}] exp:[{}] l[{}]", self.location.f(), self.location.l(), self.location.c(), seen, e, exp, l);
-        let value = seen + &e + &exp + &l;
-        Token::Unknown(value)
+fn int_hex_or_oct_l_suffix(loc: &dyn LocationState, pre: &str, seen: &str, l: &str, parsed: Result<u128, ParseIntError>) -> Token {
+    match parsed {
+        Ok(u) => {
+            if (u64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", loc.f(), loc.l(), loc.c());
+            }
+            let u = u as u64;
+
+            if u <= i64::MAX as u64 {
+                Token::IntLitI64(u as i64)
+            } else {
+                Token::IntLitU64(u)
+            }
+        }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            let value = pre.to_string() + seen + l;
+            Token::Unknown(value)
+        }
     }
+}
 
-    fn parse_hex_float_no_suffix(&self, pre: String, seen: String, p: String, exp: String) -> Token {
-        eprintln!("{}:{}:{} - warn - unimplemented hex_float: pre:[{}] seen:[{}] p:[{}] exp:[{}]", self.location.f(), self.location.l(), self.location.c(), pre, seen, p, exp);
-        let value = pre + &seen + &p + &exp;
-        Token::Unknown(value)
+fn int_hex_or_oct_lu_suffix(loc: &dyn LocationState, pre: &str, seen: &str, suff_1: &str, suff_2: &str, parsed: Result<u128, ParseIntError>) -> Token {
+    match parsed {
+        Ok(u) => {
+            if (u64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", loc.f(), loc.l(), loc.c());
+            }
+            let u = u as u64;
+            Token::IntLitU64(u as u64)
+        }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            let value = pre.to_string() + seen + suff_1 + suff_2;
+            Token::Unknown(value)
+        }
     }
+}
 
-    fn parse_hex_float_f_suffix(&self, pre: String, seen: String, p: String, exp: String, f: String) -> Token {
-        eprintln!("{}:{}:{} - warn - unimplemented hex_float_f: pre:[{}] seen:[{}] p:[{}] exp:[{}] f[{}]", self.location.f(), self.location.l(), self.location.c(), pre, seen, p, exp, f);
-        let value = pre + &seen + &p + &exp + &f;
-        Token::Unknown(value)
+fn int_hex_or_oct_u_suffix(loc: &dyn LocationState, pre: &str, seen: &str, u: &str, parsed: Result<u128, ParseIntError>) -> Token {
+    match parsed {
+        Ok(u) => {
+            if (u64::MAX as u128) < u {
+                eprintln!("{}:{}:{} - warn - value outside range of u64 will be truncated", loc.f(), loc.l(), loc.c());
+            }
+            let u = u as u64;
+            if u <= u32::MAX as u64 {
+                Token::IntLitU32(u as u32)
+            } else {
+                Token::IntLitU64(u)
+            }
+        }
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - value {} cannot be parsed as a u128?: {}", loc.f(), loc.l(), loc.c(), seen, e);
+            let value = pre.to_string() + seen + u;
+            Token::Unknown(value)
+        }
     }
+}
 
-    fn parse_hex_float_l_suffix(&self, pre: String, seen: String, p: String, exp: String, l: String) -> Token {
-        eprintln!("{}:{}:{} - warn - unimplemented hex_float_l: pre:[{}] seen:[{}] p:[{}] exp:[{}] l[{}]", self.location.f(), self.location.l(), self.location.c(), pre, seen, p, exp, l);
-        let value = pre + &seen + &p + &exp + &l;
-        Token::Unknown(value)
+fn parse_hex_int_no_suffix(loc: &dyn LocationState, pre: &str, seen: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 16);
+    int_hex_or_oct_no_suffix(loc, pre, seen, parsed)
+}
+
+fn parse_hex_int_l_suffix(loc: &dyn LocationState, pre: &str, seen: &str, l: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 16);
+    int_hex_or_oct_l_suffix(loc, pre, seen, l, parsed)
+}
+
+fn parse_hex_int_u_suffix(loc: &dyn LocationState, pre: &str, seen: &str, u: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 16);
+    int_hex_or_oct_u_suffix(loc, pre, seen, u, parsed)
+
+}
+
+fn parse_hex_int_lu_suffix(loc: &dyn LocationState, pre: &str, seen: &str, suff_1: &str, suff_2: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 16);
+    int_hex_or_oct_lu_suffix(loc, pre, seen, suff_1, suff_2, parsed)
+}
+
+fn parse_oct_int_no_suffix(loc: &dyn LocationState, seen: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 8);
+    int_hex_or_oct_no_suffix(loc, "", seen, parsed)
+}
+
+fn parse_oct_int_l_suffix(loc: &dyn LocationState, seen: &str, l: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 8);
+    int_hex_or_oct_l_suffix(loc, "", seen, l, parsed)
+}
+
+fn parse_oct_int_u_suffix(loc: &dyn LocationState, seen: &str, u: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 8);
+    int_hex_or_oct_u_suffix(loc, "", seen, u, parsed)
+}
+
+fn parse_oct_int_lu_suffix(loc: &dyn LocationState, seen: &str, suff_1: &str, suff_2: &str) -> Token {
+    let parsed = u128::from_str_radix(seen, 8);
+    int_hex_or_oct_lu_suffix(loc, "", seen, suff_1, suff_2, parsed)
+}
+
+fn parse_dec_float_no_suffix(loc: &dyn LocationState, seen: &str, e: &str, exp: &str) -> Token {
+    let value = seen.to_string() + e + exp;
+    let parsed = f64::from_str(&value);
+    match parsed {
+        Ok(val) => Token::FloatLit64(val),
+        Err(e) => {
+            eprintln!("{}:{}:{} - warn - unable to convert dec_float to f64: seen:[{}] e:[{}] exp:[{}]", loc.f(), loc.l(), loc.c(), seen, e, exp);
+            Token::Unknown(value)
+        }
     }
+}
 
+fn parse_dec_float_f_suffix(loc: &dyn LocationState, seen: &str, e: &str, exp: &str, f: &str) -> Token {
+    let value = seen.to_string() + e + exp;
+    let parsed = f32::from_str(&value);
+    match parsed {
+        Ok(val) => Token::FloatLit32(val),
+        Err(e) => {
+            eprintln!("{}:{}:{} - warn - unable to convert dec_float to f32: seen:[{}] e:[{}] exp:[{}]", loc.f(), loc.l(), loc.c(), seen, e, exp);
+            Token::Unknown(value)
+        }
+    }
+}
+
+fn parse_dec_float_l_suffix(loc: &dyn LocationState, seen: &str, e: &str, exp: &str, l: &str) -> Token {
+    eprintln!("{}:{}:{} - warn - unimplemented dec_float_l: seen:[{}] e:[{}] exp:[{}] l[{}]", loc.f(), loc.l(), loc.c(), seen, e, exp, l);
+    let value = seen.to_string() + e + exp + l;
+    Token::Unknown(value)
+}
+
+fn parse_hex_float_no_suffix(loc: &dyn LocationState, pre: &str, seen: &str, p: &str, exp: &str) -> Token {
+    eprintln!("{}:{}:{} - warn - unimplemented hex_float: pre:[{}] seen:[{}] p:[{}] exp:[{}]", loc.f(), loc.l(), loc.c(), pre, seen, p, exp);
+    let value = pre.to_string() + seen + p + exp;
+    Token::Unknown(value)
+}
+
+fn parse_hex_float_f_suffix(loc: &dyn LocationState, pre: &str, seen: &str, p: &str, exp: &str, f: &str) -> Token {
+    eprintln!("{}:{}:{} - warn - unimplemented hex_float_f: pre:[{}] seen:[{}] p:[{}] exp:[{}] f[{}]", loc.f(), loc.l(), loc.c(), pre, seen, p, exp, f);
+    let value = pre.to_string() + seen + p + exp + f;
+    Token::Unknown(value)
+}
+
+fn parse_hex_float_l_suffix(loc: &dyn LocationState, pre: &str, seen: &str, p: &str, exp: &str, l: &str) -> Token {
+    eprintln!("{}:{}:{} - warn - unimplemented hex_float_l: pre:[{}] seen:[{}] p:[{}] exp:[{}] l[{}]", loc.f(), loc.l(), loc.c(), pre, seen, p, exp, l);
+    let value = pre.to_string() + seen + p + exp + l;
+    Token::Unknown(value)
+}
+
+trait NumericDfa : Debug {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token>;
+}
+
+fn init_dfa<'iter>(loc: &'iter dyn LocationState, peeked: Option<char>) -> Box<dyn NumericDfa + 'iter> {
+    match peeked {
+        Some(c @ '0') => {
+            let seen = c.to_string();
+            Box::new(InitZero{seen})
+        }
+        Some(c @ ('0' ..= '9')) => {
+            let seen = String::from(c);
+            Box::new(DecInt{seen})
+        }
+        Some(c @ '.') => {
+            let seen = String::from(c);
+            Box::new(InitDot{seen})
+        }
+        _ => panic!("{}:{}:{} - FATAL - this isn't a numeric literal", loc.f(), loc.l(), loc.c()),
+    }
 }
 
 #[derive(Debug)]
-enum NumericDfa {
-    InitZero(String),
-    InitDot(String),
-    InitZeroX(String),
-    OctInt(String),
-    OctIntL(String, String),
-    OctIntLL(String, String),
-    OctIntU(String, String),
-    OctIntLU(String, String, String),
-    OctIntLLU(String, String, String),
-    OctDecInt(String),
-    DecInt(String),
-    DecIntL(String, String),
-    DecIntLL(String, String),
-    DecIntU(String, String),
-    DecIntLU(String, String, String),
-    DecIntLLU(String, String, String),
-    /// prefix seen
-    HexInt(String, String),
-    /// prefix seen l
-    HexIntL(String, String, String),
-    /// prefix seen ll
-    HexIntLL(String, String, String),
-    /// prefix seen u
-    HexIntU(String, String, String),
-    /// prefix seen first second
-    HexIntLU(String, String, String, String),
-    /// prefix seen first second
-    HexIntLLU(String, String, String, String),
-    // seen
-    DecFloat(String),
-    // seen f
-    DecFloatF(String, String),
-    // seen l
-    DecFloatL(String, String),
-    // seen e
-    DecFloatExp_(String, String),
-    // seen e exp
-    DecFloatExpSign(String, String, String),
-    // seen e exp
-    DecFloatExp(String, String, String),
-    // seen e exp f
-    DecFloatExpF(String, String, String, String),
-    // seen e exp l
-    DecFloatExpL(String, String, String, String),
-    /// prefix seen
-    HexFloatNoExp(String, String),
-    /// prefix seen p
-    HexFloatExp_(String, String, String),
-    /// prefix seen p exp
-    HexFloatExpSign(String, String, String, String),
-    /// prefix seen p exp
-    HexFloatExp(String, String, String, String),
-    /// prefix seen p exp f
-    HexFloatExpF(String, String, String, String, String),
-    /// prefix seen p exp l
-    HexFloatExpL(String, String, String, String, String),
-    Unkn(String, String),
+struct InitZero {
+    seen: String,
 }
+
+#[derive(Debug)]
+struct InitDot {
+    seen: String,
+}
+
+#[derive(Debug)]
+struct InitZeroX {
+    seen: String,
+}
+
+#[derive(Debug)]
+struct DecInt {
+    seen: String,
+}
+
+#[derive(Debug)]
+struct DecIntL {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct DecIntLL {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct DecIntLLU {
+    seen: String,
+    suf1: String,
+    suf2: String,
+}
+
+#[derive(Debug)]
+struct DecIntLU {
+    seen: String,
+    suf1: String,
+    suf2: String,
+}
+
+#[derive(Debug)]
+struct DecIntU {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct OctInt {
+    seen: String,
+}
+
+#[derive(Debug)]
+struct OctDecInt {
+    seen: String,
+}
+
+#[derive(Debug)]
+struct OctIntL {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct OctIntLL {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct OctIntLLU {
+    seen: String,
+    suf1: String,
+    suf2: String,
+}
+
+#[derive(Debug)]
+struct OctIntLU {
+    seen: String,
+    suf1: String,
+    suf2: String,
+}
+
+#[derive(Debug)]
+struct OctIntU {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct HexInt {
+    pref: String,
+    seen: String,
+}
+
+#[derive(Debug)]
+struct HexIntL {
+    pref: String,
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct HexIntLL {
+    pref: String,
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct HexIntLU {
+    pref: String,
+    seen: String,
+    suf1: String,
+    suf2: String,
+}
+
+#[derive(Debug)]
+struct HexIntLLU {
+    pref: String,
+    seen: String,
+    suf1: String,
+    suf2: String,
+}
+
+#[derive(Debug)]
+struct HexIntU {
+    pref: String,
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct DecFloat {
+    seen: String,
+}
+
+#[derive(Debug)]
+struct DecFloatF {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct DecFloatL {
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct DecFloatExp {
+    seen: String,
+    e: String,
+    exp: String,
+}
+
+#[derive(Debug)]
+struct DecFloatExpF {
+    seen: String,
+    e: String,
+    exp: String,
+    suff: String
+}
+
+#[derive(Debug)]
+struct DecFloatExpL {
+    seen: String,
+    e: String,
+    exp: String,
+    suff: String
+}
+
+#[derive(Debug)]
+struct DecFloatExpSign {
+    seen: String,
+    e: String,
+    exp: String,
+}
+
+#[derive(Debug)]
+struct DecFloatExp_ {
+    seen: String,
+    e: String,
+}
+
+#[derive(Debug)]
+struct HexFloat {
+    pref: String,
+    seen: String,
+}
+
+#[derive(Debug)]
+struct HexFloatF {
+    pref: String,
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct HexFloatL {
+    pref: String,
+    seen: String,
+    suff: String,
+}
+
+#[derive(Debug)]
+struct HexFloatExp_ {
+    pref: String,
+    seen: String,
+    p: String,
+}
+
+#[derive(Debug)]
+struct HexFloatExpSign {
+    pref: String,
+    seen: String,
+    p: String,
+    exp: String,
+}
+
+#[derive(Debug)]
+struct HexFloatExp {
+    pref: String,
+    seen: String,
+    p: String,
+    exp: String,
+}
+
+#[derive(Debug)]
+struct HexFloatExpF {
+    pref: String,
+    seen: String,
+    p: String,
+    exp: String,
+    suff: String
+}
+
+#[derive(Debug)]
+struct HexFloatExpL {
+    pref: String,
+    seen: String,
+    p: String,
+    exp: String,
+    suff: String
+}
+
+#[derive(Debug)]
+struct Unkn {
+    seen: String,
+    suff: String,
+}
+
+impl NumericDfa for InitZero {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '7')) => {
+                let mut next_seen = self.seen.clone();
+                next_seen.push(c);
+                Ok(Box::new(OctInt{seen: next_seen}))
+            }
+            Some(c @ ('8' | '9')) => {
+                let mut next_seen = self.seen.clone();
+                next_seen.push(c);
+                Ok(Box::new(OctDecInt{seen: next_seen}))
+            }
+            Some(c @ '.') => {
+                let mut next_seen = self.seen.clone();
+                next_seen.push(c);
+                Ok(Box::new(DecFloat{seen: next_seen}))
+            }
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(OctIntL{seen, suff}))
+            }
+            Some(c @ ('u' | 'U')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(OctIntU{seen, suff}))
+            }
+            Some(c @ ('x' | 'X')) => {
+                let mut next_seen = self.seen.clone();
+                next_seen.push(c);
+                Ok(Box::new(InitZeroX{seen: next_seen}))
+            }
+             Some(c @ ('a' ..= 'z' | 'A' ..= 'Z'| '_' )) => {
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen: self.seen.clone(), suff}))
+            }
+            _ => {
+                Err(parse_oct_int_no_suffix(loc, &self.seen))
+            }
+        }
+    }
+}
+
+impl NumericDfa for InitDot {
+    fn next(&self, _loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let mut next_seen = self.seen.clone();
+                next_seen.push(c);
+                Ok(Box::new(DecFloat{seen: next_seen}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                let value = self.seen.clone();
+                Err(Token::Unknown(value))
+            }
+        }
+    }
+}
+
+impl NumericDfa for InitZeroX {
+    fn next(&self, _loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F')) => {
+                let pref = self.seen.clone();
+                let seen = String::from(c);
+                Ok(Box::new(HexInt{pref, seen}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen[..1].to_string();
+                let mut suff = self.seen[1..].to_string();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                let value = self.seen.clone();
+                Err(Token::Unknown(value))
+            }
+        }
+    }
+}
+
+impl NumericDfa for DecInt {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(DecInt{seen}))
+            }
+            Some(c @ ('e' | 'E')) => {
+                let seen = self.seen.clone();
+                let e = String::from(c);
+                Ok(Box::new(DecFloatExp_{seen, e}))
+            }
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(DecIntL{seen, suff}))
+            }
+            Some(c @ ('u' | 'U')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(DecIntU{seen, suff}))
+            }
+            Some(c @ '.') => {
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(DecFloat{seen}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_int_no_suffix(loc, &self.seen))
+            }
+        }
+    }
+}
+
+impl NumericDfa for DecIntL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let previous = self.suff.chars().next().expect("There should always be a single char in suffix");
+                if previous == c {
+                    let seen = self.seen.clone();
+                    let mut suff = self.suff.clone();
+                    suff.push(c);
+                    Ok(Box::new(DecIntLL{seen, suff}))
+                } else {
+                    let seen = self.seen.clone();
+                    let mut suff = self.suff.clone();
+                    suff.push(c);
+                    Ok(Box::new(Unkn{seen, suff}))
+                }
+            }
+            Some(c @ ('u' | 'U')) => {
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(DecIntLU{seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_int_l_suffix(loc, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for DecIntLL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('u' | 'U')) => {
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(DecIntLLU{seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_int_l_suffix(loc, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for DecIntLLU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suf1.clone();
+                suff += &self.suf2;
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_int_lu_suffix(loc, &self.seen, &self.suf1, &self.suf2))
+            }
+        }
+    }
+}
+
+impl NumericDfa for DecIntLU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let previous = self.suf2.chars().next().expect("There should always be a single char in suffix");
+                if previous == c {
+                    let seen = self.seen.clone();
+                    let suf1 = self.suf1.clone();
+                    let mut suf2 = self.suf2.clone();
+                    suf2.push(c);
+                    Ok(Box::new(DecIntLLU{seen, suf1, suf2}))
+                } else {
+                    let seen = self.seen.clone();
+                    let mut suff = self.suf1.clone();
+                    suff += &self.suf2;
+                    suff.push(c);
+                    Ok(Box::new(Unkn{seen, suff}))
+                }
+            }
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suf1.clone();
+                suff += &self.suf2;
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_int_lu_suffix(loc, &self.seen, &self.suf1, &self.suf2))
+            }
+        }
+    }
+}
+
+impl NumericDfa for DecIntU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(DecIntLU{seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_int_u_suffix(loc, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for OctDecInt {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ '.') => {
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(DecFloat{seen}))
+            }
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                let seen = self.seen.clone();
+                Err(Token::Unknown(seen))
+            }
+        }
+    }
+}
+
+impl NumericDfa for OctInt {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '7')) => {
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(OctInt{seen}))
+            }
+            Some(c @ ('8' | '9')) => {
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(OctDecInt{seen}))
+            }
+            Some(c @ ('e' | 'E')) => {
+                let seen = self.seen.clone();
+                let e = String::from(c);
+                Ok(Box::new(DecFloatExp_{seen, e}))
+            }
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(OctIntL{seen, suff}))
+            }
+            Some(c @ ('u' | 'U')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(OctIntU{seen, suff}))
+            }
+            Some(c @ '.') => {
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(DecFloat{seen}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_oct_int_no_suffix(loc, &self.seen))
+            }
+        }
+    }
+}
+
+impl NumericDfa for OctIntL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+
+                let prev = self.suff.chars().next().expect("There should always be a single char in suffix");
+                if prev == c {
+                    Ok(Box::new(OctIntLL{seen, suff}))
+                } else {
+                    Ok(Box::new(Unkn{seen, suff}))
+                }
+            }
+            Some(c @ ('u' | 'U')) => {
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(OctIntLU{seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_oct_int_l_suffix(loc, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for OctIntLL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('u' | 'U')) => {
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(OctIntLLU{seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_oct_int_l_suffix(loc, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for OctIntLLU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suf1.clone();
+                suff += &self.suf2;
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_oct_int_lu_suffix(loc, &self.seen, &self.suf1, &self.suf2))
+            }
+        }
+    }
+}
+
+impl NumericDfa for OctIntLU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let suf1 = self.suf1.clone();
+                let mut suf2 = self.suf2.clone();
+                suf2.push(c);
+
+                let prev = self.suf2.chars().next().expect("There should always be a single char in suffix");
+                if prev == c {
+                    Ok(Box::new(OctIntLLU{seen, suf1, suf2}))
+                } else {
+                    let suff = suf1 + &suf2;
+                    Ok(Box::new(Unkn{seen, suff}))
+                }
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suf1.clone();
+                suff += &self.suf2;
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_oct_int_lu_suffix(loc, &self.seen, &self.suf1, &self.suf2))
+            }
+        }
+    }
+}
+
+impl NumericDfa for OctIntU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(OctIntLU{seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_oct_int_u_suffix(loc, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for HexInt {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F')) => {
+                let pref = self.pref.clone();
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(HexInt{pref, seen}))
+            }
+            Some(c @ ('l' | 'L')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(HexIntL{pref, seen, suff}))
+            }
+            Some(c @ ('p' | 'P')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let p = String::from(c);
+                Ok(Box::new(HexFloatExp_{pref, seen, p}))
+            }
+            Some(c @ ('u' | 'U')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(HexIntU{pref, seen, suff}))
+            }
+            Some(c @ '.') => {
+                let pref = self.pref.clone();
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(HexFloat{pref, seen}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_int_no_suffix(loc, &self.pref, &self.seen))
+            }
+        }
+    }
+}
+
+impl NumericDfa for HexIntL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let previous = self.suff.chars().next().expect("There should always be a single char in suffix");
+                if previous == c {
+                    let pref = self.pref.clone();
+                    let seen = self.seen.clone();
+                    let mut suff = self.suff.clone();
+                    suff.push(c);
+                    Ok(Box::new(HexIntLL{pref, seen, suff}))
+                } else {
+                    let mut seen = self.pref.clone();
+                    seen += &self.seen;
+                    let mut suff = self.suff.clone();
+                    suff.push(c);
+                    Ok(Box::new(Unkn{seen, suff}))
+                }
+            }
+            Some(c @ ('u' | 'U')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(HexIntLU{pref, seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_int_l_suffix(loc, &self.pref, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for HexIntLL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('u' | 'U')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(HexIntLLU{pref, seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_int_l_suffix(loc, &self.pref, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for HexIntLLU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                let mut suff = self.suf1.clone();
+                suff += &self.suf2;
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_int_lu_suffix(loc, &self.pref, &self.seen, &self.suf1, &self.suf2))
+            }
+        }
+    }
+}
+
+impl NumericDfa for HexIntLU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let previous = self.suf2.chars().next().expect("There should always be a single char in suffix");
+                if previous == c {
+                    let pref = self.pref.clone();
+                    let seen = self.seen.clone();
+                    let suf1 = self.suf1.clone();
+                    let mut suf2 = self.suf2.clone();
+                    suf2.push(c);
+                    Ok(Box::new(HexIntLLU{pref, seen, suf1, suf2}))
+                } else {
+                    let mut seen = self.pref.clone();
+                    seen += &self.seen;
+                    let mut suff = self.suf1.clone();
+                    suff += &self.suf2;
+                    suff.push(c);
+                    Ok(Box::new(Unkn{seen, suff}))
+                }
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                let mut suff = self.suf1.clone();
+                suff += &self.suf2;
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_int_lu_suffix(loc, &self.pref, &self.seen, &self.suf1, &self.suf2))
+            }
+        }
+    }
+}
+
+impl NumericDfa for HexIntU {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('l' | 'L')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let suf1 = self.suff.clone();
+                let suf2 = String::from(c);
+                Ok(Box::new(HexIntLU{pref, seen, suf1, suf2}))
+            }
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_int_u_suffix(loc, &self.pref, &self.seen, &self.suff))
+            }
+        }
+    }
+}
+
+impl NumericDfa for DecFloat {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for DecFloatExp {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for DecFloatExpF {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for DecFloatExpL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for DecFloatExpSign {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for DecFloatExp_ {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for DecFloatF {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for DecFloatL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloat {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloatExp {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloatExpF {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloatExpL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloatExpSign {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloatExp_ {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloatF {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for HexFloatL {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        todo!()
+    }
+}
+
+impl NumericDfa for Unkn {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+        match peeked {
+            Some(c @ ('0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                let mut value = self.seen.clone();
+                value += &self.suff;
+                Err(Token::Unknown(value))
+            }
+        }
+    }
+}
+
 
 impl<'iter> NumericLiteral for NumericLiteralImpl<'iter>{
     fn consume_numeric_literal(&self) -> Token {
-        use NumericDfa::*;
-        let mut dfa = match self.numeric.peek() {
-            Some('0') => {
-                self.numeric.next();
-                InitZero("0".to_string())
-            }
-            Some(c @ ('0' ..= '9')) => {
-                self.numeric.next();
-                DecInt(String::from(c))
-            }
-            Some('.') => {
-                self.numeric.next();
-                InitDot(".".to_string())
-            }
-            _ => panic!("{}:{}:{} - FATAL - this isn't a numeric literal", self.location.f(), self.location.l(), self.location.c()),
-        };
+        let peeked = self.numeric.peek();
+        let mut dfa = init_dfa(self.location, peeked);
+        self.numeric.next();
 
         loop {
-            dfa = match (dfa, self.numeric.peek()) {
-                (DecInt(mut seen), Some(c @ ('0' ..= '9'))) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    DecInt(seen)
-                }
-                (DecInt(mut seen), Some(c @ '.')) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    DecFloat(seen)
-                }
-                (DecInt(seen), Some(c @ ('e' | 'E'))) => {
-                    self.numeric.next();
-                    let e = String::from(c);
-                    DecFloatExp_(seen, e)
-                }
-                (DecInt(seen), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    DecIntL(seen, String::from(c))
-                }
-                (DecInt(seen), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    DecIntU(seen, String::from(c))
-                }
-                (DecInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    Unkn(seen, suff)
-                }
-                (DecInt(seen), _) => {
-                    break self.parse_dec_int_no_suffix(seen)
-                }
-                (DecIntL(seen, mut l), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    if l.chars().next().expect("l should never be an empty string") == c {
-                        l.push(c);
-                        DecIntLL(seen, l)
-                    } else {
-                        l.push(c);
-                        Unkn(seen, l)
-                    }
-                }
-                (DecIntL(seen, l), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    DecIntLU(seen, l, String::from(c))
-                }
-                (DecIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    l.push(c);
-                    Unkn(seen, l)
-                }
-                (DecIntL(seen, _), _) => {
-                    break self.parse_dec_int_l_suffix(seen)
-                }
-                (DecIntLL(seen, ll), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    DecIntLLU(seen, ll, String::from(c))
-                }
-                (DecIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    ll.push(c);
-                    Unkn(seen, ll)
-                }
-                (DecIntLL(seen, _), _) => {
-                    break self.parse_dec_int_l_suffix(seen)
-                }
-                (DecIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    first += &second;
-                    first.push(c);
-                    Unkn(seen, first)
-                }
-                (DecIntLLU(seen, _, _), _) => {
-                    break self.parse_dec_int_lu_suffix(seen)
-                }
-                (DecIntLU(seen, mut first, mut second), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    if second.chars().next().expect("second should never be an empty string") == c {
-                        second.push(c);
-                        DecIntLLU(seen, first, second)
-                    } else {
-                        first += &second;
-                        first.push(c);
-                        Unkn(seen, first)
-                    }
-                }
-                (DecIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    first += &second;
-                    first.push(c);
-                    Unkn(seen, first)
-                }
-                (DecIntLU(seen, _, _), _) => {
-                    break self.parse_dec_int_lu_suffix(seen)
-                }
-                (DecIntU(seen, u), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    DecIntLU(seen, u, String::from(c))
-                }
-                (DecIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    u.push(c);
-                    Unkn(seen, u)
-                }
-                (DecIntU(seen, _), _) => {
-                    break self.parse_dec_int_u_suffix(seen)
-                }
-                (InitZero(mut seen), Some(c @ ('0' ..= '7'))) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    OctInt(seen)
-                }
-                (InitZero(mut seen), Some(c @ ('8' | '9'))) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    OctDecInt(seen)
-                }
-                (InitZero(mut seen), Some(c @ '.')) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    DecFloat(seen)
-                }
-                (InitZero( seen), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    OctIntL(seen, suff)
-                }
-                (InitZero( seen), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    OctIntU(seen, suff)
-                }
-                (InitZero(mut seen), Some(c @ ('x' | 'X'))) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    InitZeroX(seen)
-                }
-                (InitZero(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    Unkn(seen, suff)
-                }
-                (InitZero(seen), _) => {
-                    break self.parse_oct_int_no_suffix(seen)
-                }
-                (OctInt(mut seen), Some(c @ ('0' ..= '7'))) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    OctInt(seen)
-                }
-                (OctInt(mut seen), Some(c @ ('8' | '9'))) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    OctDecInt(seen)
-                }
-                (OctInt(mut seen), Some(c @ '.')) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    DecFloat(seen)
-                }
-                (OctInt( seen), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    OctIntL(seen, suff)
-                }
-                (OctInt( seen), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    OctIntU(seen, suff)
-                }
-                (OctInt(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    Unkn(seen, suff)
-                }
-                (OctInt(seen), _) => {
-                    break self.parse_oct_int_no_suffix(seen)
-                }
-                (OctIntL(seen, mut l), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    if l.chars().next().expect("l should never be an empty string") == c {
-                        l.push(c);
-                        OctIntLL(seen, l)
-                    } else {
-                        l.push(c);
-                        Unkn(seen, l)
-                    }
-                }
-                (OctIntL(seen, l), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    OctIntLU(seen, l, String::from(c))
-                }
-                (OctIntL(seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    l.push(c);
-                    Unkn(seen, l)
-                }
-                (OctIntL(seen, _), _) => {
-                    break self.parse_oct_int_l_suffix(seen)
-                }
-                (OctIntLL(seen, ll), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    OctIntLLU(seen, ll, String::from(c))
-                }
-                (OctIntLL(seen, mut ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    ll.push(c);
-                    Unkn(seen, ll)
-                }
-                (OctIntLL(seen, _), _) => {
-                    break self.parse_oct_int_l_suffix(seen)
-                }
-                (OctIntLLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    first += &second;
-                    first.push(c);
-                    Unkn(seen, first)
-                }
-                (OctIntLLU(seen, _, _), _) => {
-                    break self.parse_oct_int_lu_suffix(seen)
-                }
-                (OctIntLU(seen, mut first, mut second), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    if second.chars().next().expect("second should never be an empty string") == c {
-                        second.push(c);
-                        OctIntLLU(seen, first, second)
-                    } else {
-                        first += &second;
-                        first.push(c);
-                        Unkn(seen, first)
-                    }
-                }
-                (OctIntLU(seen, mut first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    first += &second;
-                    first.push(c);
-                    Unkn(seen, first)
-                }
-                (OctIntLU(seen, _, _), _) => {
-                    break self.parse_oct_int_lu_suffix(seen)
-                }
-                (OctIntU(seen, u), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    OctIntLU(seen, u, String::from(c))
-                }
-                (OctIntU(seen, mut u), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    u.push(c);
-                    Unkn(seen, u)
-                }
-                (OctIntU(seen, _), _) => {
-                    break self.parse_oct_int_u_suffix(seen)
-                }
-                (InitZeroX(prefix), Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F'))) => {
-                    self.numeric.next();
-                    let seen = String::from(c);
-                    HexInt(prefix, seen)
-                }
-                (InitZeroX(prefix), Some(c @ '.')) => {
-                    self.numeric.next();
-                    let seen = String::from(c);
-                    HexFloatNoExp(prefix, seen)
-                }
-                (InitZeroX(prefix), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' ))) => {
-                    self.numeric.next();
-                    let seen = prefix[..1].to_string();
-                    let mut suff = prefix[1..].to_string();
-                    suff.push(c);
-                    Unkn(seen, suff)
-                }
-                (HexInt(pre, mut seen), Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F'))) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    HexInt(pre, seen)
-                }
-                (HexInt(pre, mut seen), Some(c @ '.')) => {
-                    self.numeric.next();
-                    seen.push(c);
-                    HexFloatNoExp(pre, seen)
-                }
-                (HexInt(pre, seen), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    let l = String::from(c);
-                    HexIntL(pre, seen, l)
-                }
-                (HexInt(pre, seen), Some(c @ ('p' | 'P'))) => {
-                    self.numeric.next();
-                    let p = String::from(c);
-                    HexFloatExp_(pre, seen, p)
-                }
-                (HexInt(pre, seen), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    let u = String::from(c);
-                    HexIntU(pre, seen, u)
-                }
-                (HexInt(pre, seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    let val = pre + &seen;
-                    Unkn(val, suff)
-                }
-                (HexInt(_pre, seen), _) => {
-                    break self.parse_hex_int_no_suffix(seen);
-                }
-                (HexIntL(pre, seen, l), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    if l.chars().next().expect("l should never be an empty string") == c {
-                        let mut ll = l;
-                        ll.push(c);
-                        HexIntLL(pre, seen, ll)
-                    } else {
-                        let val = pre + &seen;
-                        let mut suff = l;
-                        suff.push(c);
-                        Unkn(val, suff)
-                    }
-                }
-                (HexIntL(pre, seen, l), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    HexIntLU(pre, seen, l, String::from(c))
-                }
-                (HexIntL(pre, seen, mut l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    l.push(c);
-                    let value = pre + &seen;
-                    Unkn(value, l)
-                }
-                (HexIntL(_pre, seen, _l), _) => {
-                    break self.parse_hex_int_l_suffix(seen)
-                }
-                (HexIntLL(pre, seen, ll), Some(c @ ('u' | 'U'))) => {
-                    self.numeric.next();
-                    HexIntLLU(pre, seen, ll, String::from(c))
-                }
-                (HexIntLL(pre, seen, ll), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = pre + &seen;
-                    let mut suff = ll;
-                    suff.push(c);
-                    Unkn(value, suff)
-                }
-                (HexIntLL(_pre, seen, _ll), _) => {
-                    break self.parse_hex_int_l_suffix(seen)
-                }
-                (HexIntLLU(pre, seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = pre + &seen;
-                    let mut suff = first + &second;
-                    suff.push(c);
-                    Unkn(value, suff)
-                }
-                (HexIntLLU(_pre, seen, _first, _second), _) => {
-                    break self.parse_oct_int_lu_suffix(seen)
-                }
-                (HexIntLU(pre, seen, first, mut second), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    if second.chars().next().expect("second should never be an empty string") == c {
-                        second.push(c);
-                        HexIntLLU(pre, seen, first, second)
-                    } else {
-                        let value = pre + &seen;
-                        let suff = first + &second;
-                        Unkn(value, suff)
-                    }
-                }
-                (HexIntLU(pre, seen, first, second), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = pre + &seen;
-                    let mut suff = first + &second;
-                    suff.push(c);
-                    Unkn(value, suff)
-                }
-                (HexIntLU(_pre, seen, _first, _second), _) => {
-                    break self.parse_hex_int_lu_suffix(seen)
-                }
-                (HexIntU(pre, seen, u), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    HexIntLU(pre, seen, u, String::from(c))
-                }
-                (HexIntU(pre, seen, u), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = pre + &seen;
-                    let mut suff = u;
-                    suff.push(c);
-                    Unkn(value, suff)
-                }
-                (HexIntU(_pre, seen, _u), _) => {
-                    break self.parse_hex_int_u_suffix(seen)
-                }
-                (DecFloat(seen), Some(c @ ('0' ..= '9'))) => {
-                    self.numeric.next();
-                    let mut value = seen;
-                    value.push(c);
-                    DecFloat(value)
-                }
-                (DecFloat(seen), Some(c @ ('e' | 'E'))) => {
-                    self.numeric.next();
-                    let e = String::from(c);
-                    DecFloatExp_(seen, e)
-                }
-                (DecFloat(seen), Some(c @ ('f' | 'F'))) => {
-                    self.numeric.next();
-                    let f = String::from(c);
-                    DecFloatF(seen, f)
-                }
-                (DecFloat(seen), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    let l = String::from(c);
-                    DecFloatL(seen, l)
-                }
-                (DecFloat(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    Unkn(seen, suff)
-                }
-                (DecFloat(seen), _) => {
-                    break self.parse_dec_float_no_suffix(seen, "".to_string(), "".to_string())
-                }
-                (InitDot(seen), Some(c @ ('0' ..= '9'))) => {
-                    self.numeric.next();
-                    let mut next = seen;
-                    next.push(c);
-                    DecFloat(next)
-                }
-                (InitDot(seen), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let suff = String::from(c);
-                    Unkn(seen, suff)
-                }
-                (DecFloatExp_(seen, e), Some(c @ ('0' ..= '9'))) => {
-                    self.numeric.next();
-                    let exp = String::from(c);
-                    DecFloatExp(seen, e, exp)
-                }
-                (DecFloatExp_(seen, e), Some(c @ ('+' | '-'))) => {
-                    self.numeric.next();
-                    let exp = String::from(c);
-                    DecFloatExpSign(seen, e, exp)
-                }
-                (DecFloatExp(seen, e, exp), Some(c @ ('0' ..= '9'))) => {
-                    self.numeric.next();
-                    let mut next_exp = exp;
-                    next_exp.push(c);
-                    DecFloatExp(seen, e, next_exp)
-                }
-                (DecFloatExp(seen, e, exp), Some(c @ ('f' | 'F'))) => {
-                    self.numeric.next();
-                    let f = String::from(c);
-                    DecFloatExpF(seen, e, exp, f)
-                }
-                (DecFloatExp(seen, e, exp), Some(c @ ('l' | 'L'))) => {
-                    self.numeric.next();
-                    let l = String::from(c);
-                    DecFloatExpL(seen, e, exp, l)
-                }
-                (DecFloatExp(seen, e, exp), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = seen + &e + &exp;
-                    let suff = String::from(c);
-                    Unkn(value, suff)
-                }
-                (DecFloatExp(seen, e, exp), _) => {
-                    break self.parse_dec_float_no_suffix(seen, e, exp)
-                }
-                (DecFloatExpSign(seen, e, exp), Some(c @ ('0' ..= '9'))) => {
-                    self.numeric.next();
-                    let mut next_exp = exp;
-                    next_exp.push(c);
-                    DecFloatExp(seen, e, next_exp)
-                }
-                (DecFloatExpSign(seen, e, exp), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = seen + &e + &exp;
-                    let suff = String::from(c);
-                    Unkn(value, suff)
-                }
-                (DecFloatExpSign(seen, e, exp), unexpect) => {
-                    let value = seen + &e + &exp;
-                    eprintln!("{}:{}:{} - warn - unexpected char after sign in decimal float literal: [{}] + [{:?}]", self.location.f(), self.location.l(), self.location.c(), value, unexpect);
-
-                    break Token::Unknown(value)
-                }
-                (DecFloatF(seen, f), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let mut suff = f;
-                    suff.push(c);
-                    Unkn(seen, suff)
-                }
-                (DecFloatF(seen, f), _ ) => {
-                    break self.parse_dec_float_f_suffix(seen, "".to_string(), "".to_string(), f)
-                }
-                (DecFloatExpF(seen, e, exp, f), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = seen + &e + &exp;
-                    let mut suff = f;
-                    suff.push(c);
-                    Unkn(value, suff)
-                }
-                (DecFloatExpF(seen, e, exp, f), _ ) => {
-                    break self.parse_dec_float_f_suffix(seen, e, exp, f)
-                }
-                (DecFloatL(seen, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let mut suff = l;
-                    suff.push(c);
-                    Unkn(seen, suff)
-                }
-                (DecFloatL(seen, l), _ ) => {
-                    break self.parse_dec_float_l_suffix(seen, "".to_string(), "".to_string(), l)
-                }
-                (DecFloatExpL(seen, e, exp, l), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    let value = seen + &e + &exp;
-                    let mut suff = l;
-                    suff.push(c);
-                    Unkn(value, suff)
-                }
-                (DecFloatExpL(seen, e, exp, l), _ ) => {
-                    break self.parse_dec_float_l_suffix(seen, e, exp, l)
-                }
-                (Unkn(seen, mut suff), Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '.'))) => {
-                    self.numeric.next();
-                    suff.push(c);
-                    Unkn(seen, suff)
-                }
-                (Unkn(seen, suff), _) => {
-                    eprintln!("{}:{}:{} - warn - unprocessable numeric literal: numeric:[{}] suffix:[{}] ", self.location.f(), self.location.l(), self.location.c(), seen, suff);
-                    let combined = seen + &suff;
-                    break Token::Unknown(combined)
-                }
-                (s, c) => {
-                    panic!("{}:{}:{} - FATAL - Unhandled inputs: ({:?}, {:?})", self.location.f(), self.location.l(), self.location.c(), s, c);
-                }
-            };
+            let peeked = self.numeric.peek();
+            if self.debug {
+                println!("{}:{}:{} - debug - inputs: ({:?}, {:?})", self.location.f(), self.location.l(), self.location.c(), dfa, peeked);
+            }
+            let dfa_or_token = dfa.next(self.location, peeked);
+            match dfa_or_token {
+                Ok(next_dfa) => {
+                    self.numeric.next();
+                    dfa = next_dfa
+                }
+                Err(token) => break token,
+            }
         }
     }
 }
