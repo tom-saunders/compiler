@@ -1354,10 +1354,18 @@ impl NumericDfa for DecFloatExpSign {
                 Ok(Box::new(DecFloatExp{seen, e, exp}))
             }
             Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
-                todo!()
+                let seen = self.seen.clone();
+                let mut suff = self.e.clone();
+                suff += &self.exp;
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
             }
             _ => {
-                todo!()
+                eprintln!("{}:{}:{} - error - exponent has no digits", loc.f(), loc.l(), loc.c());
+                let mut value = self.seen.clone();
+                value += &self.e;
+                value += &self.exp;
+                Err(Token::Unknown(value))
             }
         }
     }
@@ -1385,7 +1393,10 @@ impl NumericDfa for DecFloatExp_ {
                 Ok(Box::new(Unkn{seen, suff}))
             }
             _ => {
-                todo!()
+                eprintln!("{}:{}:{} - error - exponent has no digits", loc.f(), loc.l(), loc.c());
+                let mut value = self.seen.clone();
+                value += &self.e;
+                Err(Token::Unknown(value))
             }
         }
     }
