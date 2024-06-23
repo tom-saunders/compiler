@@ -346,7 +346,7 @@ struct InitDot {
 
 #[derive(Debug)]
 struct InitZeroX {
-    seen: String,
+    pref: String,
 }
 
 #[derive(Debug)]
@@ -622,7 +622,7 @@ impl NumericDfa for InitZero {
             Some(c @ ('x' | 'X')) => {
                 let mut next_seen = self.seen.clone();
                 next_seen.push(c);
-                Ok(Box::new(InitZeroX{seen: next_seen}))
+                Ok(Box::new(InitZeroX{pref: next_seen}))
             }
              Some(c @ ('a' ..= 'z' | 'A' ..= 'Z'| '_' )) => {
                 let suff = String::from(c);
@@ -636,7 +636,7 @@ impl NumericDfa for InitZero {
 }
 
 impl NumericDfa for InitDot {
-    fn next(&self, _loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
         match peeked {
             Some(c @ ('0' ..= '9')) => {
                 let mut next_seen = self.seen.clone();
@@ -649,29 +649,35 @@ impl NumericDfa for InitDot {
                 Ok(Box::new(Unkn{seen, suff}))
             }
             _ => {
-                let value = self.seen.clone();
-                Err(Token::Unknown(value))
+                // this is a panic as it should really be a Token::Dot and never have entered here
+                panic!("{}:{}:{} - FATAL - found '.' with no trailing digits in numeric_literal", loc.f(), loc.l(), loc.c());
             }
         }
     }
 }
 
 impl NumericDfa for InitZeroX {
-    fn next(&self, _loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
         match peeked {
             Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F')) => {
-                let pref = self.seen.clone();
+                let pref = self.pref.clone();
                 let seen = String::from(c);
                 Ok(Box::new(HexInt{pref, seen}))
             }
-            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
-                let seen = self.seen[..1].to_string();
-                let mut suff = self.seen[1..].to_string();
+            Some(c @ '.') => {
+                let pref = self.pref.clone();
+                let seen = String::from(c);
+                Ok(Box::new(HexFloat{pref, seen}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_')) => {
+                let seen = self.pref[..1].to_string();
+                let mut suff = self.pref[1..].to_string();
                 suff.push(c);
                 Ok(Box::new(Unkn{seen, suff}))
             }
             _ => {
-                let value = self.seen.clone();
+                eprintln!("{}:{}:{} - error - found hex prefix with no digits following", loc.f(), loc.l(), loc.c());
+                let value = self.pref.clone();
                 Err(Token::Unknown(value))
             }
         }
@@ -862,6 +868,7 @@ impl NumericDfa for OctDecInt {
                 Ok(Box::new(Unkn{seen, suff}))
             }
             _ => {
+                eprintln!("{}:{}:{} - error - found non-octal values in octal integer", loc.f(), loc.l(), loc.c());
                 let seen = self.seen.clone();
                 Err(Token::Unknown(seen))
             }
@@ -1229,49 +1236,190 @@ impl NumericDfa for HexIntU {
 
 impl NumericDfa for DecFloat {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(DecFloat{seen}))
+            }
+            Some(c @ ('e' | 'E')) => {
+                let seen = self.seen.clone();
+                let e = String::from(c);
+                Ok(Box::new(DecFloatExp_{seen, e}))
+            }
+            Some(c @ ('f' | 'F')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(DecFloatF{seen, suff}))
+            }
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(DecFloatL{seen, suff}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_float_no_suffix(loc, &self.seen, "", ""))
+            }
+        }
     }
 }
 
 impl NumericDfa for DecFloatExp {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let seen = self.seen.clone();
+                let e = self.e.clone();
+                let mut exp = self.exp.clone();
+                exp.push(c);
+                Ok(Box::new(DecFloatExp{seen, e, exp}))
+            }
+            Some(c @ ('f' | 'F')) => {
+                let seen = self.seen.clone();
+                let e = self.e.clone();
+                let exp = self.exp.clone();
+                let suff = String::from(c);
+                Ok(Box::new(DecFloatExpF{seen, e, exp, suff}))
+            }
+            Some(c @ ('l' | 'L')) => {
+                let seen = self.seen.clone();
+                let e = self.e.clone();
+                let exp = self.exp.clone();
+                let suff = String::from(c);
+                Ok(Box::new(DecFloatExpL{seen, e, exp, suff}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.seen.clone();
+                seen += &self.e;
+                seen += &self.exp;
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_float_no_suffix(loc, &self.seen, &self.e, &self.exp))
+            }
+        }
     }
 }
 
 impl NumericDfa for DecFloatExpF {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.seen.clone();
+                seen += &self.e;
+                seen += &self.exp;
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_float_f_suffix(loc, &self.seen, &self.e, &self.exp, &self.suff))
+            }
+        }
     }
 }
 
 impl NumericDfa for DecFloatExpL {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.seen.clone();
+                seen += &self.e;
+                seen += &self.exp;
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_float_l_suffix(loc, &self.seen, &self.e, &self.exp, &self.suff))
+            }
+        }
     }
 }
 
 impl NumericDfa for DecFloatExpSign {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let seen = self.seen.clone();
+                let e = self.e.clone();
+                let mut exp = self.exp.clone();
+                exp.push(c);
+                Ok(Box::new(DecFloatExp{seen, e, exp}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                todo!()
+            }
+            _ => {
+                todo!()
+            }
+        }
     }
 }
 
 impl NumericDfa for DecFloatExp_ {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let seen = self.seen.clone();
+                let e = self.e.clone();
+                let exp = String::from(c);
+                Ok(Box::new(DecFloatExp{seen, e, exp}))
+            }
+            Some(c @ ('+' | '-')) => {
+                let seen = self.seen.clone();
+                let e = self.e.clone();
+                let exp = String::from(c);
+                Ok(Box::new(DecFloatExpSign{seen, e, exp}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.e.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                todo!()
+            }
+        }
     }
 }
 
 impl NumericDfa for DecFloatF {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_float_f_suffix(loc, &self.seen, "", "", &self.suff))
+            }
+        }
     }
 }
 
 impl NumericDfa for DecFloatL {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let seen = self.seen.clone();
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_dec_float_l_suffix(loc, &self.seen, "", "", &self.suff))
+            }
+        }
     }
 }
 
@@ -1333,6 +1481,7 @@ impl NumericDfa for Unkn {
                 Ok(Box::new(Unkn{seen, suff}))
             }
             _ => {
+                eprintln!("{}:{}:{} - error - unexpected suffix [{}] for numeric value {}{}", loc.f(), loc.l(), loc.c(), self.suff, self.seen, self.suff);
                 let mut value = self.seen.clone();
                 value += &self.suff;
                 Err(Token::Unknown(value))
