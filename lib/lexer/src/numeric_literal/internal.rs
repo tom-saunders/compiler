@@ -531,20 +531,6 @@ struct HexFloat {
 }
 
 #[derive(Debug)]
-struct HexFloatF {
-    pref: String,
-    seen: String,
-    suff: String,
-}
-
-#[derive(Debug)]
-struct HexFloatL {
-    pref: String,
-    seen: String,
-    suff: String,
-}
-
-#[derive(Debug)]
 struct HexFloatExp_ {
     pref: String,
     seen: String,
@@ -1436,49 +1422,177 @@ impl NumericDfa for DecFloatL {
 
 impl NumericDfa for HexFloat {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9' | 'a' ..= 'f' | 'A' ..= 'F')) => {
+                let pref = self.pref.clone();
+                let mut seen = self.seen.clone();
+                seen.push(c);
+                Ok(Box::new(HexFloat{pref, seen}))
+            }
+            Some(c @ ('p' | 'P')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let p = String::from(c);
+                Ok(Box::new(HexFloatExp_{pref, seen, p}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                eprintln!("{}:{}:{} - error - hex float literals must have an exponent", loc.f(), loc.l(), loc.c());
+                let mut value = self.pref.clone();
+                value += &self.seen;
+                Err(Token::Unknown(value))
+            }
+        }
     }
 }
 
 impl NumericDfa for HexFloatExp {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let p = self.p.clone();
+                let mut exp = self.exp.clone();
+                exp.push(c);
+                Ok(Box::new(HexFloatExp{pref, seen, p, exp}))
+            }
+            Some(c @ ('f' | 'F')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let p = self.p.clone();
+                let exp = self.exp.clone();
+                let suff = String::from(c);
+                Ok(Box::new(HexFloatExpF{pref, seen, p, exp, suff}))
+            }
+            Some(c @ ('l' | 'L')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let p = self.p.clone();
+                let exp = self.exp.clone();
+                let suff = String::from(c);
+                Ok(Box::new(HexFloatExpL{pref, seen, p, exp, suff}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                seen += &self.p;
+                seen += &self.exp;
+                let suff = String::from(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_float_no_suffix(loc, &self.pref, &self.seen, &self.p, &self.exp))
+            }
+        }
     }
 }
 
 impl NumericDfa for HexFloatExpF {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                seen += &self.p;
+                seen += &self.exp;
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_float_f_suffix(loc, &self.pref, &self.seen, &self.p, &self.exp, &self.suff))
+            }
+        }
     }
 }
 
 impl NumericDfa for HexFloatExpL {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9' |'a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                seen += &self.p;
+                seen += &self.exp;
+                let mut suff = self.suff.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                Err(parse_hex_float_l_suffix(loc, &self.pref, &self.seen, &self.p, &self.exp, &self.suff))
+            }
+        }
     }
 }
 
 impl NumericDfa for HexFloatExpSign {
-    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {        match peeked {
+        Some(c @ ('0' ..= '9')) => {
+            let pref = self.pref.clone();
+            let seen = self.seen.clone();
+            let p = self.p.clone();
+            let mut exp = self.exp.clone();
+            exp.push(c);
+            Ok(Box::new(HexFloatExp{pref, seen, p, exp}))
+        }
+        Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+            let mut seen = self.pref.clone();
+            seen += &self.seen;
+            let mut suff = self.p.clone();
+            suff += &self.exp;
+            suff.push(c);
+            Ok(Box::new(Unkn{seen, suff}))
+        }
+        _ => {
+            eprintln!("{}:{}:{} - error - exponent has no digits", loc.f(), loc.l(), loc.c());
+            let mut value = self.pref.clone();
+            value += &self.seen;
+            value += &self.p;
+            value += &self.exp;
+            Err(Token::Unknown(value))
+        }
+    }
     }
 }
 
 impl NumericDfa for HexFloatExp_ {
     fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
-    }
-}
-
-impl NumericDfa for HexFloatF {
-    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
-    }
-}
-
-impl NumericDfa for HexFloatL {
-    fn next(&self, loc: &dyn LocationState, peeked: Option<char>) -> Result<Box<dyn NumericDfa>, Token> {
-        todo!()
+        match peeked {
+            Some(c @ ('0' ..= '9')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let p = self.p.clone();
+                let exp = String::from(c);
+                Ok(Box::new(HexFloatExp{pref, seen, p, exp}))
+            }
+            Some(c @ ('+' | '-')) => {
+                let pref = self.pref.clone();
+                let seen = self.seen.clone();
+                let p = self.p.clone();
+                let exp = String::from(c);
+                Ok(Box::new(HexFloatExpSign{pref, seen, p, exp}))
+            }
+            Some(c @ ('a' ..= 'z' | 'A' ..= 'Z' | '_' | '.')) => {
+                let mut seen = self.pref.clone();
+                seen += &self.seen;
+                let mut suff = self.p.clone();
+                suff.push(c);
+                Ok(Box::new(Unkn{seen, suff}))
+            }
+            _ => {
+                eprintln!("{}:{}:{} - error - exponent has no digits", loc.f(), loc.l(), loc.c());
+                let mut value = self.pref.clone();
+                value += &self.seen;
+                value += &self.p;
+                Err(Token::Unknown(value))
+            }
+        }
     }
 }
 

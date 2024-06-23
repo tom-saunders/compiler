@@ -21,7 +21,7 @@ fn test_float_literal_hex_exponent_no_digits() {
 #[test]
 fn test_float_literal_hex_no_digits() {
     let (exp_t, act_t, act_sz) = unknown_and_actual("0x.p");
-    let exp_sz = 5;
+    let exp_sz = 4;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -30,7 +30,7 @@ fn test_float_literal_hex_no_digits() {
 #[test]
 fn test_float_literal_hex_exponent_pos_no_digits() {
     let (exp_t, act_t, act_sz) = unknown_and_actual("0x1.p+");
-    let exp_sz = 5;
+    let exp_sz = 6;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -39,7 +39,7 @@ fn test_float_literal_hex_exponent_pos_no_digits() {
 #[test]
 fn test_float_literal_hex_exponent_neg_no_digits() {
     let (exp_t, act_t, act_sz) = unknown_and_actual("0x1.p-");
-    let exp_sz = 5;
+    let exp_sz = 6;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
@@ -411,7 +411,7 @@ fn test_float_literal_hex_fl_suffix_rejected() {
 #[test]
 fn test_float_literal_hex_abc_suffix_rejected() {
     let (exp_t, act_t, act_sz) = unknown_and_actual("0xf.p1abc");
-    let exp_sz = 8;
+    let exp_sz = 9;
 
     assert_eq!(exp_t, act_t);
     assert_eq!(exp_sz, act_sz);
