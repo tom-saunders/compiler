@@ -8,6 +8,9 @@ use std::num::ParseIntError;
 use std::str::Chars;
 use std::str::FromStr;
 
+use hexf_parse::parse_hexf32;
+use hexf_parse::parse_hexf64;
+
 use crate::Token;
 use crate::LocationState;
 
@@ -295,15 +298,27 @@ fn parse_dec_float_l_suffix(loc: &dyn LocationState, seen: &str, e: &str, exp: &
 }
 
 fn parse_hex_float_no_suffix(loc: &dyn LocationState, pre: &str, seen: &str, p: &str, exp: &str) -> Token {
-    eprintln!("{}:{}:{} - warn - unimplemented hex_float: pre:[{}] seen:[{}] p:[{}] exp:[{}]", loc.f(), loc.l(), loc.c(), pre, seen, p, exp);
     let value = pre.to_string() + seen + p + exp;
-    Token::Unknown(value)
+    match parse_hexf64(&value, false) {
+        Ok(f) => Token::FloatLit64(f),
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - unable to parse hexf64: [{}] - {}", loc.f(), loc.l(), loc.c(), value, e);
+            Token::Unknown(value)
+        }
+    }
 }
 
 fn parse_hex_float_f_suffix(loc: &dyn LocationState, pre: &str, seen: &str, p: &str, exp: &str, f: &str) -> Token {
-    eprintln!("{}:{}:{} - warn - unimplemented hex_float_f: pre:[{}] seen:[{}] p:[{}] exp:[{}] f[{}]", loc.f(), loc.l(), loc.c(), pre, seen, p, exp, f);
-    let value = pre.to_string() + seen + p + exp + f;
-    Token::Unknown(value)
+    let value = pre.to_string() + seen + p + exp;
+    match parse_hexf32(&value, false) {
+        Ok(f) => Token::FloatLit32(f),
+        Err(e) => {
+            eprintln!("{}:{}:{} - error - unable to parse hexf32: [{}] - {}", loc.f(), loc.l(), loc.c(), value, e);
+            let mut value = value;
+            value += &exp;
+            Token::Unknown(value)
+        }
+    }
 }
 
 fn parse_hex_float_l_suffix(loc: &dyn LocationState, pre: &str, seen: &str, p: &str, exp: &str, l: &str) -> Token {
