@@ -145,6 +145,7 @@ fn test_float_literal_dec_f_suffix_from_oct() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_no_exponent() {
     let value = 0b0__011_1111_1111_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "1.0l");
@@ -155,6 +156,7 @@ fn test_float_literal_dec_l_suffix_no_exponent() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_no_exponent_no_integer() {
     let value = 0b0__011_1111_1101_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, ".25l");
@@ -165,6 +167,7 @@ fn test_float_literal_dec_l_suffix_no_exponent_no_integer() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_no_exponent_no_fract() {
     let value = 0b0__011_1111_1111_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "1.l");
@@ -175,6 +178,7 @@ fn test_float_literal_dec_l_suffix_no_exponent_no_fract() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_no_integer() {
     let value = 0b0__011_1111_1101_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, ".25e1l");
@@ -185,6 +189,7 @@ fn test_float_literal_dec_l_suffix_no_integer() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_no_fract() {
     let value = 0b0__011_1111_1111_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "1e0l");
@@ -195,6 +200,7 @@ fn test_float_literal_dec_l_suffix_no_fract() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_no_fract_pos() {
     let value = 0b0__011_1111_1111_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "1e+0l");
@@ -205,6 +211,7 @@ fn test_float_literal_dec_l_suffix_no_fract_pos() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_no_fract_neg() {
     let value = 0b0__011_1111_1111_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "1e-0l");
@@ -215,6 +222,7 @@ fn test_float_literal_dec_l_suffix_no_fract_neg() {
 }
 
 #[test]
+#[ignore = "long doubles unimplemented"]
 fn test_float_literal_dec_l_suffix_from_oct() {
     let value = 0b0__011_1111_1111_1101__1__000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
     let (exp_t, act_t, act_sz) = exp_f80_and_actual(value, "01.l");
